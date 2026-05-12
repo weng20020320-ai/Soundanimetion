@@ -120,6 +120,10 @@ export interface Dictionary {
     backgroundLabel: string;
     transparentLabel: string;
     transparentNotSupported: string;
+    /** "纯净背景（关闭颗粒/暗角）"勾选项标签 — 用于 PR 抠像合成。 */
+    cleanBackgroundLabel: string;
+    /** 鼠标悬停 tooltip：解释为什么需要这个。 */
+    cleanBackgroundHint: string;
 
     audioInfo: (name: string, mbPerFrame: number) => string;
     audioNotLoaded: string;

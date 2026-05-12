@@ -5,7 +5,11 @@ import { RealtimeFeatureExtractor } from './audio/RealtimeFeatureExtractor';
 import { ThreeContext } from './render/ThreeContext';
 import { PreviewRenderer } from './render/PreviewRenderer';
 import { OfflineRenderer } from './render/OfflineRenderer';
-import { PostFXChain, buildPostFXSchema } from './render/PostFXChain';
+import {
+  PostFXChain,
+  buildPostFXSchema,
+  type PostFXParams,
+} from './render/PostFXChain';
 import { detectGpu } from './render/GpuTier';
 import { analyzeOffline } from './audio/OfflineAnalyzer';
 import { FeatureTimeline } from './audio/FeatureTimeline';
@@ -594,6 +598,19 @@ export default function App() {
     preview.stop();
     encoderFallbackNoticeRef.current = null;
 
+    // 若用户勾选"纯净背景"，导出期间临时关掉颗粒/暗角（不破坏用户的 store 设定，
+    // 导出结束后 finally 块恢复）。
+    let savedPostFXForClean: PostFXParams | null = null;
+    if (settings.cleanBackground && postFXRef.current) {
+      const cur = useAppStore.getState().postFXParams;
+      savedPostFXForClean = { ...cur };
+      postFXRef.current.setParams({
+        ...cur,
+        grainEnabled: false,
+        vignetteEnabled: false,
+      });
+    }
+
     setExportProgress({
       phase: 'analyzing',
       ratio: 0,
@@ -677,6 +694,9 @@ export default function App() {
       setErrorMsg(t.errors.exportFailed((e as Error).message));
       setExportProgress(null);
     } finally {
+      if (savedPostFXForClean && postFXRef.current) {
+        postFXRef.current.setParams(savedPostFXForClean);
+      }
       preview.start();
     }
   }
@@ -720,7 +740,14 @@ export default function App() {
         <button onClick={handleOpen} disabled={loading || !!exportProgress}>
           {loading ? t.topbar.loadingAudio : t.topbar.loadAudio}
         </button>
-        <span className="dim">
+        <span
+          className="dim topbar-hint"
+          title={
+            fileName
+              ? `${fileName} · ${sourceTypeLabel}`
+              : t.topbar.notLoadedHint
+          }
+        >
           {fileName ? `${fileName} · ${sourceTypeLabel}` : t.topbar.notLoadedHint}
         </span>
         <div className="spacer" />

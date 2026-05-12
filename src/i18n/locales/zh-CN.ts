@@ -9,7 +9,7 @@ export const zhCN: Dictionary = {
     brand: 'Wavelet',
     loadAudio: '加载文件',
     loadingAudio: '加载中…',
-    notLoadedHint: '未加载（点击「加载文件」选择 mp3/wav/flac/mp4 等，或直接拖入窗口）',
+    notLoadedHint: '未加载 — 点击「加载文件」或拖入 mp3 / wav / mp4',
     sourceTypeAudio: '音频',
     sourceTypeVideo: '视频',
     presetLabel: '预设',
@@ -121,6 +121,9 @@ export const zhCN: Dictionary = {
     transparentLabel: '透明（含 alpha 通道）',
     transparentNotSupported:
       'MP4 (H.264) 不支持 alpha；如需透明请选 ProRes 4444 或 PNG 序列。',
+    cleanBackgroundLabel: '纯净背景（关闭颗粒/暗角）',
+    cleanBackgroundHint:
+      '勾选后导出时关闭 PostFX 颗粒和暗角，背景保持纯色，便于在 Premiere / AE 里用 Ultra Key 抠像。',
 
     audioInfo: (name, mb) => `音频：${name} · 单帧像素 ≈${mb.toFixed(2)} MB`,
     audioNotLoaded: '未加载',

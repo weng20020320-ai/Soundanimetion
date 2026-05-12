@@ -30,6 +30,8 @@ export interface ExportSettings {
   quality: ExportQuality;
   encoder: VideoEncoder;
   qualityProfile: QualityProfile;
+  /** 导出时强制关闭 PostFX 颗粒和暗角，背景保持纯色，方便后期抠像 / 合成。 */
+  cleanBackground: boolean;
 }
 
 interface ExportDialogProps {
@@ -103,6 +105,7 @@ export function ExportDialog({
   const [endSec, setEndSec] = useState(duration);
   const [bgColor, setBgColor] = useState(defaultBgColor);
   const [bgAlpha, setBgAlpha] = useState(defaultBgAlpha);
+  const [cleanBackground, setCleanBackground] = useState(false);
   // 默认 standard（CRF 20）：1080p60 20s ≈ 25-35MB，肉眼几乎和 high (CRF 17, ≈80MB) 没差别
   // 之前默认 high 导致 20s 视频出 400+ MB
   const [quality, setQuality] = useState<ExportQuality>('standard');
@@ -254,6 +257,7 @@ export function ExportDialog({
       quality,
       encoder,
       qualityProfile,
+      cleanBackground,
     });
   }
 
@@ -447,6 +451,23 @@ export function ExportDialog({
               {t.exportDialog.transparentNotSupported}
             </span>
           )}
+          <label
+            className="dim"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              marginTop: 4,
+            }}
+            title={t.exportDialog.cleanBackgroundHint}
+          >
+            <input
+              type="checkbox"
+              checked={cleanBackground}
+              onChange={(e) => setCleanBackground(e.target.checked)}
+            />
+            {t.exportDialog.cleanBackgroundLabel}
+          </label>
         </div>
 
         <div className="field">

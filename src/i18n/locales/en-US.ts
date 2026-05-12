@@ -10,7 +10,7 @@ export const enUS: Dictionary = {
     loadAudio: 'Open file',
     loadingAudio: 'Loading…',
     notLoadedHint:
-      'No file loaded (click "Open file" to choose mp3/wav/flac/mp4… or drop one onto the window)',
+      'No file — click "Open file" or drop an mp3 / wav / mp4 here',
     sourceTypeAudio: 'audio',
     sourceTypeVideo: 'video',
     presetLabel: 'Preset',
@@ -125,6 +125,9 @@ export const enUS: Dictionary = {
     transparentLabel: 'Transparent (alpha channel)',
     transparentNotSupported:
       'MP4 (H.264) does not support alpha. For transparency, choose ProRes 4444 or PNG sequence.',
+    cleanBackgroundLabel: 'Solid background (no grain/vignette)',
+    cleanBackgroundHint:
+      'Disables PostFX grain and vignette during export so the background stays a flat solid color, ready for chroma key (Ultra Key in Premiere, Keylight in AE, etc.).',
 
     audioInfo: (name, mb) => `Audio: ${name} · ${mb.toFixed(2)} MB / frame`,
     audioNotLoaded: 'Not loaded',

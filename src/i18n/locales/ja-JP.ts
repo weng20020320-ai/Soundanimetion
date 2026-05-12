@@ -10,7 +10,7 @@ export const jaJP: Dictionary = {
     loadAudio: 'ファイルを開く',
     loadingAudio: '読み込み中…',
     notLoadedHint:
-      'ファイル未読み込み — 「ファイルを開く」から mp3 / wav / flac / mp4 などを選択するか、ウィンドウへドラッグ＆ドロップしてください',
+      '未読み込み — 「ファイルを開く」または D&D で mp3 / wav / mp4 …',
     sourceTypeAudio: '音声',
     sourceTypeVideo: '動画',
     presetLabel: 'プリセット',
@@ -124,6 +124,9 @@ export const jaJP: Dictionary = {
     transparentLabel: '透明（アルファチャンネルを含める）',
     transparentNotSupported:
       'MP4 (H.264) はアルファ非対応です。透過したい場合は ProRes 4444 または PNG 連番を選んでください。',
+    cleanBackgroundLabel: '純色背景（粒子・周辺減光オフ）',
+    cleanBackgroundHint:
+      'チェックすると書き出し時に PostFX の粒子と周辺減光を無効化し、背景を均一な単色に保ちます。Premiere の Ultra Key や After Effects の Keylight で抜きやすくなります。',
 
     audioInfo: (name, mb) =>
       `音声：${name} · 1 フレームあたり RGBA ≒ ${mb.toFixed(2)} MB`,

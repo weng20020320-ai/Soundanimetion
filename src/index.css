@@ -218,6 +218,19 @@ input[type='range'] {
   text-align: right;
 }
 
+/* 顶栏中部的"未加载"提示 / 文件名：允许收缩 + ellipsis，
+   不再把右侧控件挤出窗口。完整文本通过 title 悬停可见。 */
+.top-bar .topbar-hint {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* 给一个最大宽度上限，避免 hint 把 spacer 完全吞掉，
+     这样即使没有 ellipsis 触发，右侧控件也总能保留呼吸空间。 */
+  max-width: 38%;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
