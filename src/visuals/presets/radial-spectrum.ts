@@ -162,9 +162,12 @@ export function createRadialSpectrumPreset(): VisualPreset {
     state.geometry = new THREE.PlaneGeometry(1, 1);
     state.geometry.translate(0, 0.5, 0); // 锚点放底部
     // 同 spectrum-bars：InstancedMesh 只用 instanceColor，不要打开 vertexColors。
+    // depthWrite=false：柱体底部和内圆环共面 (z=0)，两者都 transparent，
+    // 如果开了 depthWrite 透明排序会在帧间随浮点误差翻转，节拍时表现为闪烁。
     state.material = new THREE.MeshBasicMaterial({
       transparent: true,
       side: THREE.DoubleSide,
+      depthWrite: false,
     });
     const mesh = new THREE.InstancedMesh(state.geometry, state.material, count);
     mesh.instanceColor = new THREE.InstancedBufferAttribute(
@@ -172,6 +175,7 @@ export function createRadialSpectrumPreset(): VisualPreset {
       3
     );
     mesh.frustumCulled = false;
+    mesh.renderOrder = 1; // 柱体在圆环之后画
     state.bars = mesh;
 
     const ringGeo = new THREE.RingGeometry(1, 1.06, 128);
@@ -179,8 +183,11 @@ export function createRadialSpectrumPreset(): VisualPreset {
       color: 0xffffff,
       transparent: true,
       opacity: 0.5,
+      depthWrite: false,
     });
     state.ring = new THREE.Mesh(ringGeo, state.ringMat);
+    state.ring.position.z = -0.001; // 微微沉到柱体之后，避免共面 z-fighting
+    state.ring.renderOrder = 0;     // 圆环在柱体之前画
 
     group.add(mesh);
     group.add(state.ring);
