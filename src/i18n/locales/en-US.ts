@@ -21,6 +21,17 @@ export const enUS: Dictionary = {
       `Snapshot saved:\n${path}\n\nReveal in file explorer?`,
   },
 
+  viewport: {
+    aspectLabel: 'Aspect',
+    aspect169: '16:9 Landscape',
+    aspect916: '9:16 Vertical',
+    aspect11: '1:1 Square',
+    aspect45: '4:5 Portrait',
+    zoomLabel: 'Zoom',
+    zoomTitle:
+      'Adjust preview zoom (also applies to the exported framing — WYSIWYG)',
+  },
+
   errors: {
     needAudioFirst: 'Please load an audio or video file first',
     presetSwitchFailed: (msg) => `Failed to switch preset: ${msg}`,

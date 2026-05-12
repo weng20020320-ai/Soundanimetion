@@ -39,6 +39,19 @@ export interface Dictionary {
     snapshotSaved: (path: string) => string;
   };
 
+  viewport: {
+    /** "画幅" / "Aspect" — 比例下拉前的小标签。 */
+    aspectLabel: string;
+    aspect169: string;
+    aspect916: string;
+    aspect11: string;
+    aspect45: string;
+    /** "缩放" / "Zoom" — 缩放滑块前的小标签。 */
+    zoomLabel: string;
+    /** 缩放滑块的 title 提示：解释这个值也会影响导出。 */
+    zoomTitle: string;
+  };
+
   errors: {
     needAudioFirst: string;
     presetSwitchFailed: (msg: string) => string;

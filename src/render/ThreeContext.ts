@@ -30,6 +30,9 @@ export class ThreeContext {
   width = 1;
   height = 1;
 
+  /** 相机基础距离（z 坐标）。aspect < 1 时会按比例拉远，保证圆形内容横向也装得下。 */
+  private baseCameraZ = 6;
+
   /** 当前帧的音频特征；preview / offline 渲染循环写入，hook 读取用于参数调制。 */
   frameFeatures: AudioFeatures | null = null;
 
@@ -67,8 +70,8 @@ export class ThreeContext {
     });
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 200);
-    this.camera.position.set(0, 0, 6);
+    this.camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 400);
+    this.camera.position.set(0, 0, this.baseCameraZ);
 
     this.presetGroup = new THREE.Group();
     this.presetGroup.name = 'PresetRoot';
@@ -103,8 +106,31 @@ export class ThreeContext {
     this.height = Math.max(1, Math.floor(height));
     this.renderer.setSize(this.width, this.height, updateStyle);
     this.camera.aspect = this.width / this.height;
+    this.applyAspectDependentCameraDistance();
     this.camera.updateProjectionMatrix();
     for (const cb of this.resizeListeners) cb(this.width, this.height);
+  }
+
+  /**
+   * 当 aspect < 1（竖屏/方形）时，把相机往后拉一点：
+   * 默认 FOV 是垂直 FOV，所以横向可视宽度 = 垂直高度 × aspect。竖屏 aspect 越小，
+   * 横向越窄，圆形内容会被裁掉。等比拉远相机后水平可视宽度恢复，能装下半径 ~2.8 的圆。
+   *
+   * landscape (aspect >= 1)：保持 baseCameraZ，不动。
+   */
+  private applyAspectDependentCameraDistance(): void {
+    const a = this.camera.aspect;
+    const z = a >= 1 ? this.baseCameraZ : this.baseCameraZ / a;
+    this.camera.position.z = z;
+  }
+
+  /**
+   * 设置预览缩放（presetGroup.scale）。不影响相机和分辨率，
+   * 因此不影响导出像素，只是把所有 preset 整体放大缩小给用户看清楚细节。
+   */
+  setViewScale(scale: number): void {
+    const s = Math.max(0.1, Math.min(4, scale));
+    this.presetGroup.scale.setScalar(s);
   }
 
   onResize(cb: (w: number, h: number) => void): () => void {

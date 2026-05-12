@@ -125,12 +125,15 @@ input[type='range'] {
   position: relative;
   background: #000;
   overflow: hidden;
+  /* letterbox：让 canvas 按当前目标 aspect 居中，外圈黑边由背景填。 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .viewport canvas {
   display: block;
-  width: 100% !important;
-  height: 100% !important;
+  /* 不再撑满；具体宽高由 ThreeContext.setSize 写到 canvas.style.width/height。 */
 }
 
 .side-panel {
@@ -190,6 +193,29 @@ input[type='range'] {
 
 .dim {
   color: var(--text-dim);
+}
+
+/* 顶栏取景控件：画幅下拉 + 缩放滑块 */
+.viewport-aspect-select {
+  background: var(--bg-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+.viewport-zoom-slider {
+  width: 88px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.viewport-zoom-readout {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  min-width: 36px;
+  text-align: right;
 }
 
 .modal-backdrop {

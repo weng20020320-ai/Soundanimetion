@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useAppStore } from './store/app-store';
+import { useAppStore, getAspectRatio } from './store/app-store';
 import { AudioEngine, type MediaKind } from './audio/AudioEngine';
 import { RealtimeFeatureExtractor } from './audio/RealtimeFeatureExtractor';
 import { ThreeContext } from './render/ThreeContext';
@@ -20,6 +20,7 @@ import { ExportProgress, type ExportProgressState } from './ui/ExportProgress';
 import { WaveformBar } from './ui/WaveformBar';
 import { PresetIO, type PresetExport } from './ui/PresetIO';
 import { LanguageSwitcher } from './ui/LanguageSwitcher';
+import { ViewportControls } from './ui/ViewportControls';
 import { useT, useLocale } from './i18n';
 import type { HardwareEncodersInfo } from '../electron/preload';
 import { capabilities, DESKTOP_DOWNLOAD_URL } from './platform/capabilities';
@@ -46,6 +47,30 @@ function detectKindFromName(name: string): MediaKind {
 function isMediaFile(name: string): boolean {
   const ext = name.split('.').pop()?.toLowerCase() ?? '';
   return VIDEO_EXTS.has(ext) || AUDIO_EXTS.has(ext);
+}
+
+/**
+ * 在容器内算一个保持目标 aspect 的居中矩形（letterbox / pillarbox）。
+ * 容器空隙由 .viewport 的黑色背景填充。
+ */
+function computeLetterboxSize(
+  containerW: number,
+  containerH: number,
+  aspect: number
+): { w: number; h: number } {
+  const cw = Math.max(1, containerW);
+  const ch = Math.max(1, containerH);
+  // 容器比目标 aspect 宽 → 取容器高度 × aspect 当宽
+  // 容器比目标 aspect 高 → 取容器宽度 / aspect 当高
+  const containerAspect = cw / ch;
+  if (containerAspect >= aspect) {
+    const h = ch;
+    const w = Math.floor(h * aspect);
+    return { w, h: Math.floor(h) };
+  }
+  const w = cw;
+  const h = Math.floor(w / aspect);
+  return { w: Math.floor(w), h };
 }
 
 export default function App() {
@@ -139,14 +164,20 @@ export default function App() {
     window.addEventListener('error', onErr);
 
     const canvas = document.createElement('canvas');
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
     canvas.style.display = 'block';
     container.appendChild(canvas);
     canvasRef.current = canvas;
 
     const ctx = new ThreeContext(canvas);
-    ctx.setSize(container.clientWidth, container.clientHeight);
+    // 初次尺寸用当前 store 的 aspect 算 letterbox
+    const initAspect = getAspectRatio(useAppStore.getState().targetAspectId);
+    const initBox = computeLetterboxSize(
+      container.clientWidth,
+      container.clientHeight,
+      initAspect
+    );
+    ctx.setSize(initBox.w, initBox.h, true);
+    ctx.setViewScale(useAppStore.getState().viewScale);
     ctxRef.current = ctx;
 
     // 启动时一次性探测 GPU 等级，存进 store；ExportDialog / OfflineRenderer 会读它来选执行路径。
@@ -199,14 +230,31 @@ export default function App() {
     });
 
     const resize = () => {
-      ctx.setSize(container.clientWidth, container.clientHeight);
+      const aspect = getAspectRatio(
+        useAppStore.getState().targetAspectId
+      );
+      const box = computeLetterboxSize(
+        container.clientWidth,
+        container.clientHeight,
+        aspect
+      );
+      ctx.setSize(box.w, box.h, true);
     };
     const ro = new ResizeObserver(resize);
     ro.observe(container);
 
+    // 订阅 store 里的 aspect / viewScale 变化，立刻 reapply。
+    const unsubAspect = useAppStore.subscribe((state, prev) => {
+      if (state.targetAspectId !== prev.targetAspectId) resize();
+      if (state.viewScale !== prev.viewScale) {
+        ctx.setViewScale(state.viewScale);
+      }
+    });
+
     return () => {
       window.removeEventListener('error', onErr);
       unsubAudio();
+      unsubAspect();
       preview.stop();
       if (presetRef.current) presetRef.current.dispose(ctx);
       extractor.stop();
@@ -676,6 +724,7 @@ export default function App() {
           {fileName ? `${fileName} · ${sourceTypeLabel}` : t.topbar.notLoadedHint}
         </span>
         <div className="spacer" />
+        <ViewportControls />
         <span className="label">{t.topbar.presetLabel}</span>
         <PresetSelector value={activePresetId} onChange={setActivePreset} />
         <button

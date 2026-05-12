@@ -16,6 +16,7 @@ import {
 } from '../render/EncoderSelector';
 import { estimateExportSize } from '../render/SizeEstimator';
 import { useT } from '../i18n';
+import { useAppStore, getAspectRatio } from '../store/app-store';
 
 export interface ExportSettings {
   format: ExportFormat;
@@ -42,12 +43,35 @@ interface ExportDialogProps {
   onConfirm: (settings: ExportSettings) => void;
 }
 
-const RESOLUTION_PRESETS_FIXED = [
-  { label: '720p (1280×720)', w: 1280, h: 720 },
-  { label: '1080p (1920×1080)', w: 1920, h: 1080 },
-  { label: '1440p (2560×1440)', w: 2560, h: 1440 },
-  { label: '4K (3840×2160)', w: 3840, h: 2160 },
-] as const;
+/**
+ * 根据当前 aspect ratio 生成 720p/1080p/1440p/4K 四档分辨率预设。
+ * 命名采用「短边」规则：1080p 横屏 = 1920×1080，1080p 竖屏 = 1080×1920。
+ * 这样 1080p 在所有 aspect 下都是相同感觉的"主流流媒体清晰度"。
+ */
+function buildResolutionPresets(
+  aspect: number
+): ReadonlyArray<{ label: string; w: number; h: number }> {
+  const tiers: ReadonlyArray<{ name: string; min: number }> = [
+    { name: '720p', min: 720 },
+    { name: '1080p', min: 1080 },
+    { name: '1440p', min: 1440 },
+    { name: '4K', min: 2160 },
+  ];
+  return tiers.map(({ name, min }) => {
+    let w: number;
+    let h: number;
+    if (aspect >= 1) {
+      h = min;
+      w = Math.round(min * aspect);
+    } else {
+      w = min;
+      h = Math.round(min / aspect);
+    }
+    if (w % 2) w += 1;
+    if (h % 2) h += 1;
+    return { label: `${name} (${w}×${h})`, w, h };
+  });
+}
 
 const FPS_PRESETS = [24, 30, 60];
 
@@ -62,11 +86,18 @@ export function ExportDialog({
   onConfirm,
 }: ExportDialogProps) {
   const t = useT();
+  const targetAspectId = useAppStore((s) => s.targetAspectId);
+  const targetAspect = getAspectRatio(targetAspectId);
+
+  const aspectPresets = useMemo(
+    () => buildResolutionPresets(targetAspect),
+    [targetAspect]
+  );
 
   const [format, setFormat] = useState<ExportFormat>('mp4');
   const [resPresetIdx, setResPresetIdx] = useState(1); // 1080p
-  const [customW, setCustomW] = useState(1920);
-  const [customH, setCustomH] = useState(1080);
+  const [customW, setCustomW] = useState(aspectPresets[1].w);
+  const [customH, setCustomH] = useState(aspectPresets[1].h);
   const [fps, setFps] = useState(30);
   const [startSec, setStartSec] = useState(0);
   const [endSec, setEndSec] = useState(duration);
@@ -80,11 +111,18 @@ export function ExportDialog({
 
   const resolutionPresets = useMemo(
     () => [
-      ...RESOLUTION_PRESETS_FIXED,
+      ...aspectPresets,
       { label: t.exportDialog.resolutionCustom, w: 0, h: 0 },
     ],
-    [t]
+    [t, aspectPresets]
   );
+
+  // aspect 变化时把 custom 字段重置到新 aspect 的 1080p tier，避免上次的 16:9 1920×1080
+  // 还残留在用户切到竖屏后的输入框里。
+  useEffect(() => {
+    setCustomW(aspectPresets[1].w);
+    setCustomH(aspectPresets[1].h);
+  }, [aspectPresets]);
 
   const qualityLabels = useMemo(
     () =>

@@ -19,6 +19,16 @@ export const zhCN: Dictionary = {
     snapshotSaved: (path) => `快照已保存：\n${path}\n\n是否在资源管理器中显示？`,
   },
 
+  viewport: {
+    aspectLabel: '画幅',
+    aspect169: '16:9 横屏',
+    aspect916: '9:16 竖屏',
+    aspect11: '1:1 方形',
+    aspect45: '4:5 竖向',
+    zoomLabel: '缩放',
+    zoomTitle: '调整预览缩放（也会同步影响导出的画面取景）',
+  },
+
   errors: {
     needAudioFirst: '请先加载音频或视频',
     presetSwitchFailed: (msg) => `切换预设失败：${msg}`,

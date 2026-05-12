@@ -21,6 +21,16 @@ export const jaJP: Dictionary = {
       `スナップショットを保存しました：\n${path}\n\nエクスプローラーで開きますか？`,
   },
 
+  viewport: {
+    aspectLabel: 'フレーム',
+    aspect169: '16:9 横',
+    aspect916: '9:16 縦',
+    aspect11: '1:1 スクエア',
+    aspect45: '4:5 縦長',
+    zoomLabel: 'ズーム',
+    zoomTitle: 'プレビューズーム（書き出しの構図にも反映されます）',
+  },
+
   errors: {
     needAudioFirst: '先に音声または動画を読み込んでください',
     presetSwitchFailed: (msg) => `プリセットの切り替えに失敗しました：${msg}`,
