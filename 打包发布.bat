@@ -1,6 +1,6 @@
 @echo off
 REM ============================================================
-REM  Audio Visualizer - Package Release launcher.
+REM  Wavelet - Package Release launcher.
 REM
 REM  IMPORTANT: This .bat MUST stay 100% ASCII.
 REM  Japanese Windows cmd.exe parses .bat as CP932; any non-ASCII
@@ -11,7 +11,7 @@ REM  dialog). All Chinese output is delegated to release-banner.mjs.
 REM ============================================================
 
 chcp 65001 > nul
-title Audio Visualizer - Package Release
+title Wavelet - Package Release
 cd /d "%~dp0"
 
 call node "scripts\release-banner.mjs" pre

@@ -9,8 +9,12 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "start": "electron-vite preview",
+    "dev:web": "vite --config web/vite.config.ts",
+    "build:web": "vite build --config web/vite.config.ts",
+    "preview:web": "vite preview --config web/vite.config.ts",
     "clean:release": "node scripts/clean-release.mjs",
     "package:win": "npm run clean:release && electron-vite build && electron-builder --win",
+    "package:mac": "npm run clean:release && electron-vite build && electron-builder --mac",
     "type-check:web": "tsc --noEmit -p tsconfig.web.json",
     "type-check:node": "tsc --noEmit -p tsconfig.node.json",
     "type-check": "npm run type-check:web && npm run type-check:node"
@@ -40,8 +44,8 @@
     "vite": "^7.3.3"
   },
   "build": {
-    "appId": "com.audiovisualizer.app",
-    "productName": "Audio Visualizer",
+    "appId": "com.clearmika.wavelet",
+    "productName": "Wavelet",
     "directories": {
       "output": "release"
     },
@@ -75,12 +79,31 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Audio Visualizer",
-      "artifactName": "AudioVisualizer-${version}-setup.${ext}"
+      "shortcutName": "Wavelet",
+      "artifactName": "wavelet-${version}-win-${arch}-setup.${ext}"
     },
     "portable": {
       "requestExecutionLevel": "user",
-      "artifactName": "AudioVisualizer-${version}-portable.${ext}"
+      "artifactName": "wavelet-${version}-win-${arch}-portable.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.music",
+      "artifactName": "wavelet-${version}-mac-${arch}.${ext}",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "identity": null
+    },
+    "dmg": {
+      "artifactName": "wavelet-${version}-mac-${arch}.${ext}"
     }
   }
 }

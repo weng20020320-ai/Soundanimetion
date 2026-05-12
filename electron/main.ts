@@ -15,7 +15,7 @@ function createWindow(): void {
     minHeight: 640,
     show: false,
     backgroundColor: '#0b0d12',
-    title: 'Audio Visualizer',
+    title: 'Wavelet',
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/preload.cjs'),

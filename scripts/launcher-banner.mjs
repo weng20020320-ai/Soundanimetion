@@ -28,7 +28,7 @@ function line(color, text) {
 if (stage === 'banner') {
   console.log();
   line(COLOR.cyan, '  ====================================');
-  line(COLOR.cyan, '   Audio Visualizer - 启动中...');
+  line(COLOR.cyan, '   Wavelet - 启动中...');
   line(COLOR.cyan, '  ====================================');
   console.log();
 } else if (stage === 'install-start') {

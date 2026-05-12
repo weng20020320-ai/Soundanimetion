@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 > nul
-title Audio Visualizer (dev)
+title Wavelet (dev)
 cd /d "%~dp0"
 
 call node "scripts\launcher-banner.mjs" banner

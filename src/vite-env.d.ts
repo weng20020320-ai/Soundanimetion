@@ -11,3 +11,13 @@ declare module 'web-audio-beat-detector' {
     audioBuffer: AudioBuffer
   ): Promise<{ bpm: number; offset: number }>;
 }
+
+interface ImportMetaEnv {
+  readonly VITE_PLATFORM?: 'electron' | 'web';
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
+declare const __APP_VERSION__: string;

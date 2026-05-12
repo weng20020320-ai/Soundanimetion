@@ -22,6 +22,7 @@ import { PresetIO, type PresetExport } from './ui/PresetIO';
 import { LanguageSwitcher } from './ui/LanguageSwitcher';
 import { useT, useLocale } from './i18n';
 import type { HardwareEncodersInfo } from '../electron/preload';
+import { capabilities, DESKTOP_DOWNLOAD_URL } from './platform/capabilities';
 import './types';
 
 const VIDEO_EXTS = new Set(['mp4', 'm4v', 'mov', 'webm', 'mkv', 'avi']);
@@ -227,6 +228,7 @@ export default function App() {
   }, [bgColor, bgAlpha]);
 
   useEffect(() => {
+    if (!capabilities.hardwareEncoderProbe) return; // Web 平台没有 ffmpeg
     let cancelled = false;
     window.api
       .getHardwareEncoders()
@@ -383,6 +385,12 @@ export default function App() {
   }
 
   function handleOpenExport() {
+    // Web 试玩版没有 ffmpeg / 文件对话框；直接把用户引到桌面版下载页。
+    if (!capabilities.videoExport) {
+      const ok = window.confirm(t.webDemo.exportCtaConfirm);
+      if (ok) window.open(DESKTOP_DOWNLOAD_URL, '_blank', 'noopener');
+      return;
+    }
     if (!audioLoaded) {
       setErrorMsg(t.errors.needAudioFirst);
       return;
@@ -424,11 +432,14 @@ export default function App() {
       setLoading(true);
       try {
         // 先尝试拿到磁盘路径（FeatureTimeline 用作缓存 key + ffmpeg 复用音轨需要）。
+        // Web 平台没有磁盘路径概念，直接走 ArrayBuffer 路径。
         let filePath: string | null = null;
-        try {
-          filePath = window.api.getDroppedFilePath(file);
-        } catch {
-          /* 主进程拿不到 path 的话，退化到 ArrayBuffer 路径 */
+        if (capabilities.droppedFilePath) {
+          try {
+            filePath = window.api.getDroppedFilePath(file);
+          } catch {
+            /* 主进程拿不到 path 的话，退化到 ArrayBuffer 路径 */
+          }
         }
         if (filePath) {
           const result = await window.api.loadFromPath(filePath);
@@ -481,10 +492,11 @@ export default function App() {
         defaultName,
         data: bytes,
       });
-      if (savedPath) {
+      if (savedPath && capabilities.showInFolder) {
         const ok = window.confirm(t.topbar.snapshotSaved(savedPath));
         if (ok) await window.api.showItemInFolder(savedPath);
       }
+      // Web 平台：浏览器已经触发了下载，不需要再弹确认框。
     } catch (e) {
       console.error('[App] 快照失败：', e);
       setErrorMsg(t.errors.snapshotFailed((e as Error).message));
@@ -607,9 +619,11 @@ export default function App() {
       );
 
       setExportProgress(null);
-      const ok = window.confirm(t.exportProgress.completed(result.outputPath));
-      if (ok) {
-        await window.api.showItemInFolder(result.outputPath);
+      if (capabilities.showInFolder) {
+        const ok = window.confirm(t.exportProgress.completed(result.outputPath));
+        if (ok) {
+          await window.api.showItemInFolder(result.outputPath);
+        }
       }
     } catch (e) {
       setErrorMsg(t.errors.exportFailed((e as Error).message));
@@ -641,6 +655,18 @@ export default function App() {
           : undefined
       }
     >
+      {capabilities.showWebDemoNotice && (
+        <div className="web-demo-banner">
+          <span>{t.webDemo.bannerText}</span>
+          <a
+            href={DESKTOP_DOWNLOAD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t.webDemo.bannerCta}
+          </a>
+        </div>
+      )}
       <div className="top-bar">
         <span className="brand">{t.topbar.brand}</span>
         <button onClick={handleOpen} disabled={loading || !!exportProgress}>
@@ -661,9 +687,18 @@ export default function App() {
         </button>
         <button
           onClick={handleOpenExport}
-          disabled={!audioLoaded || !!exportProgress}
+          disabled={
+            capabilities.videoExport
+              ? !audioLoaded || !!exportProgress
+              : false
+          }
+          title={
+            capabilities.videoExport ? undefined : t.webDemo.exportCtaConfirm
+          }
         >
-          {t.topbar.exportVideo}
+          {capabilities.videoExport
+            ? t.topbar.exportVideo
+            : t.webDemo.exportButtonAlt}
         </button>
         <LanguageSwitcher />
         {errorMsg && (

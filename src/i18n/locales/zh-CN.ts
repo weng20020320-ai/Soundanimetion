@@ -6,7 +6,7 @@ export const zhCN: Dictionary = {
   },
 
   topbar: {
-    brand: 'Audio Visualizer',
+    brand: 'Wavelet',
     loadAudio: '加载文件',
     loadingAudio: '加载中…',
     notLoadedHint: '未加载（点击「加载文件」选择 mp3/wav/flac/mp4 等，或直接拖入窗口）',
@@ -353,6 +353,13 @@ export const zhCN: Dictionary = {
     proResFilterName: 'QuickTime ProRes 4444',
     snapshotTitle: '保存快照',
     snapshotFilterName: 'PNG 图像',
+  },
+
+  webDemo: {
+    bannerText: '网页试玩版 · 仅预览。视频导出需安装桌面版。',
+    bannerCta: '下载桌面版 →',
+    exportCtaConfirm: '视频导出仅桌面版支持。是否前往下载页？',
+    exportButtonAlt: '安装桌面版',
   },
 };
 

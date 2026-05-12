@@ -1,0 +1,63 @@
+---
+description: 完成实质性改动后自动 commit 并 push 到 GitHub
+alwaysApply: true
+---
+
+# 自动 commit + push
+
+完成一组实质性改动后，**默认应该**自动 git commit + push，让用户离开电脑期间也能持续推进。
+
+## 何时自动 push
+
+满足以下任一条件就 push：
+
+- 完成了一个 todo 列表里的逻辑闭环（例如「Phase 1 完成」、「Web demo 拆分完成」）
+- 用户的指令明显是一次性大任务，结束时不需要等 review
+- `npm run type-check` 通过（如果项目里有这个 script）
+
+## 何时不要 push
+
+- 改动里有 **secrets / 密钥 / .env / *.key / credentials.json** —— 先警告用户
+- 改动**未通过类型检查**或明显引入了 lint 错误
+- 用户在对话里**明确说**「先不要 push / 我要先 review」
+- 当前在做实验性 / 探索性的临时改动（写在 PR scratch 分支或 stash 里）
+
+## commit message 规范
+
+中英混用，简体中文为主，参考 Conventional Commits：
+
+```
+<type>: <一句话简体中文摘要>
+
+<可选的更详细说明：列点>
+```
+
+`<type>` 取值：
+- `feat`: 新功能
+- `fix`: bug 修复
+- `chore`: 杂项（依赖、配置、构建脚本）
+- `docs`: 文档
+- `refactor`: 重构（不改变行为）
+- `style`: 格式化
+- `test`: 测试
+
+## 操作流程
+
+1. `git status` 看动了什么
+2. `git diff` 简略扫一眼（确认没有意外改动）
+3. `git add .` 或精确 add
+4. `git commit -m "..."`（用 HEREDOC 写多行）
+5. `git push`（不带 `-u` / `--force` 等危险参数）
+
+## 严禁
+
+- ❌ `git push --force` / `git push -f`（除非用户明确要求）
+- ❌ `--no-verify` / 绕过 pre-commit hook
+- ❌ `git commit --amend` 后 push（会改写历史）
+- ❌ 修改 `.git/config` 或 git 全局配置
+- ❌ 在 commit 前 push 不存在的分支
+
+## 失败处理
+
+- push 失败（认证 / 冲突）→ 立刻停止，把完整报错贴回给用户，**不要**自动 `git pull --rebase` 或 force push
+- 用户的另一台电脑可能也在改，冲突很正常，让用户决定怎么 merge

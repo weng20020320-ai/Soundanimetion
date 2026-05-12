@@ -324,4 +324,19 @@ export interface Dictionary {
     snapshotTitle: string;
     snapshotFilterName: string;
   };
+
+  /**
+   * Web 试玩版专用文案。桌面版不会展示这些，但字典里仍然必须有，
+   * 让 TypeScript 严格检查三种语言全部翻译。
+   */
+  webDemo: {
+    /** 顶部 banner 文字 */
+    bannerText: string;
+    /** Banner 上的 CTA 链接文字 */
+    bannerCta: string;
+    /** 点导出按钮时跳下载页前的 confirm() 提示 */
+    exportCtaConfirm: string;
+    /** 顶栏导出按钮在 web 上显示的替代文字 */
+    exportButtonAlt: string;
+  };
 }

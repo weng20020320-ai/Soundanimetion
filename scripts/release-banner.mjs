@@ -31,7 +31,7 @@ function line(color, text) {
 if (stage === 'pre') {
   console.log();
   line(COLOR.cyan, '  ============================================================');
-  line(COLOR.cyan, '   Audio Visualizer - 打包成可移植 .exe');
+  line(COLOR.cyan, '   Wavelet - 打包成可移植 .exe');
   line(COLOR.cyan, '  ============================================================');
   console.log();
   console.log('  即将执行：');
@@ -39,8 +39,8 @@ if (stage === 'pre') {
   console.log('        （保留 release\\.cache\\ 以便复用 electron 二进制下载）');
   console.log('    [2] electron-vite build  → 构建 main / preload / renderer');
   console.log('    [3] electron-builder --win  → 在 release\\ 下生成两个文件：');
-  console.log('          AudioVisualizer-x.x.x-portable.exe   绿色单文件，免安装');
-  console.log('          AudioVisualizer-x.x.x-setup.exe      NSIS 安装包');
+  console.log('          wavelet-x.x.x-win-x64-portable.exe   绿色单文件，免安装');
+  console.log('          wavelet-x.x.x-win-x64-setup.exe      NSIS 安装包');
   console.log();
   line(
     COLOR.dim,
@@ -58,8 +58,8 @@ if (stage === 'pre') {
   line(COLOR.green, '  ============================================================');
   console.log();
   console.log('  请到项目下的 release\\ 目录查看生成的 .exe 文件：');
-  console.log('    AudioVisualizer-<version>-portable.exe   双击即跑，不写注册表');
-  console.log('    AudioVisualizer-<version>-setup.exe      NSIS 安装版');
+  console.log('    wavelet-<version>-win-x64-portable.exe   双击即跑，不写注册表');
+  console.log('    wavelet-<version>-win-x64-setup.exe      NSIS 安装版');
   console.log();
 } else if (stage === 'fail') {
   const exitCode = process.argv[3] || '?';

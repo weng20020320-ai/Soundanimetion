@@ -3,9 +3,235 @@
 > 给"换电脑后继续 vibe-coding"用的接力笔记。
 > 每条记录尽量包含**改了什么 / 为什么 / 在哪几个文件**，便于 AI 助手快速对齐项目状态。
 >
-> 项目根：`c:\Users\Axile\Desktop\nabesima\サウンド`
+> 项目根（最新一台）：`c:\Users\weng2\Desktop\Neoclear\Soundanimetion`
 > 启动开发：双击 `サウンド可視化.bat`（= `npm run dev`）
 > 打包发布：双击 `打包发布.bat`（= `npm run package:win`，包含自动清理）
+
+---
+
+## 2026-05-12 🌐 Web demo 拆分（Phase 2）+ auto-push 规则
+
+### 背景
+延续 Phase 1，把项目变成「桌面版（完整）+ Web 试玩版（精简）」双发布。Web 版部署到 Vercel 子域 `wavelet.clearmika.com`，每次推 main 自动重新部署。同时给 Cursor agent 一条 always-apply 规则，让它做完实质性改动后自动 commit + push（不再需要用户手动操作）。
+
+### 设计：一份源码两个产物
+
+不复制源码、不写"if platform"判断到处都是，而是用 **能力开关（capabilities）+ window.api polyfill** 的方式让 `src/App.tsx` 90% 代码桌面/网页通吃。
+
+```
+electron-vite build  → 用 src/main.tsx 当入口 → out/renderer/      (桌面用)
+vite build (web)     → 用 web/main.tsx 当入口 → web/dist/          (Vercel 用)
+```
+
+差异由 Vite 的 `define` 注入：
+- 桌面版：`VITE_PLATFORM = 'electron'`（默认）
+- Web 版：`VITE_PLATFORM = 'web'`（在 web/vite.config.ts 写死）
+
+### 新增
+
+#### 1. 平台抽象层 `src/platform/`
+- **`capabilities.ts`**：
+  - 导出 `PLATFORM: 'electron' | 'web'`（从 `import.meta.env.VITE_PLATFORM` 解析）
+  - 导出 `capabilities` 对象，6 个能力开关：`fileDialog / videoExport / showInFolder / hardwareEncoderProbe / droppedFilePath / showWebDemoNotice`
+  - 导出 `DESKTOP_DOWNLOAD_URL`（指向 GitHub Releases latest）
+  - **设计要点**：渲染层永远只读 `capabilities.foo`，不直接判断 `isElectron`，将来加 Tauri / Mac Native 第三种宿主只用扩 capabilities
+- **`web-api.ts`**：
+  - `createWebApi()` 在浏览器里实现一份 `AppApi` 接口
+  - `openAudio()` → 触发隐藏的 `<input type="file">`，含 focus 回调兜底（用户取消时也能正确 resolve null）
+  - `saveSnapshot()` → 创建 Blob URL + `<a download>` 触发浏览器自动下载
+  - `loadFromPath/getDroppedFilePath/ffmpegStart/showItemInFolder` 等"原生专属"方法：要么抛错要么 graceful no-op
+  - `getHardwareEncoders()` → 返回空 `available: []`
+  - `attachWebApi()` 把对象挂到 `window.api`（带防重复挂载标志）
+  - **TS 难点**：AppApi 是从 preload.ts 推断的，`onFfmpegLog` 真实签名返回 `() => IpcRenderer`，Web 上拿不到 IpcRenderer → 最终 `as unknown as AppApi` 强转
+
+#### 2. Web 入口 `web/`
+- **`web/index.html`**：splash hint 写 `WEB DEMO`，其余和 src/index.html 同结构（保留音柱动画）
+- **`web/main.tsx`**：先 `attachWebApi()` 再 render App，依赖 ESM import 顺序保证（App.tsx 里所有 `window.api.*` 都在 useEffect 内）
+- **`web/vite.config.ts`**：
+  - root 在 `web/`，alias `@ → src/` 共享代码
+  - `define: { 'import.meta.env.VITE_PLATFORM': '"web"', __APP_VERSION__: <package.json version> }`
+  - 输出到 `web/dist/`，dev server 5174 端口避开 electron-vite 的 5173
+
+#### 3. UI 改动
+- **`src/i18n/types.ts`**：新增 `webDemo` 字段（4 个 string）
+- **三语 locale** 全部翻译（zh-CN 完整、en-US 完整、ja-JP 完整）
+- **`src/App.tsx`**：
+  - Web 横幅：`{capabilities.showWebDemoNotice && <div className="web-demo-banner">...</div>}`
+  - 导出按钮：Web 上文字变成 "安装桌面版"，点击 → `window.confirm` → 跳 GitHub Releases
+  - `useEffect(getHardwareEncoders)`：web 上跳过
+  - `handleDrop`：web 上跳过 `getDroppedFilePath`（避免抛错）
+  - 快照保存：web 上跳过"在资源管理器中显示"二次 confirm
+  - 导出完成：同上
+- **`src/index.css`**：
+  - `.app-shell` 顶部新增 `banner` 行（`grid-template-rows: auto 48px ...`，桌面下 banner 不渲染 → auto 行高 0px，无副作用）
+  - `.web-demo-banner` 玻璃拟态横条：渐变半透明蓝、CTA 链接 hover 透明度
+
+#### 4. 构建 / 部署
+- **`vercel.json`**：
+  ```json
+  { "buildCommand": "npm run build:web", "outputDirectory": "web/dist" }
+  ```
+  Vercel 自动识别 npm install，不需要其它配置
+- **`package.json`** scripts 新增：
+  - `dev:web` / `build:web` / `preview:web`
+- **`tsconfig.web.json`** include 扩到 `web/**/*.ts(x)`
+- **`src/vite-env.d.ts`** 声明 `ImportMetaEnv.VITE_PLATFORM` + `__APP_VERSION__` 全局
+
+#### 5. 自动化规则
+- **`.cursor/rules/auto-push.mdc`**（alwaysApply: true）：
+  - 完成实质性改动 + type-check 通过后自动 `git add → commit → push`
+  - 严禁 `--force` / `--no-verify` / `--amend after push` / 改 git config
+  - Commit message 中文 Conventional Commits 风格
+  - push 失败时立刻停止，把报错贴回用户，不自动 rebase / force
+
+#### 6. 烟测脚本
+- **`scripts/smoke-web.mjs`**：
+  - 起 `vite preview --port 5175`
+  - HTTP GET 根路径
+  - 检查 `id="root"` / `type="module"` / `<title>Wavelet`
+  - 全绿才退 0
+
+### 验证
+
+```
+npm run type-check               PASS (web + node)
+npm run build                    PASS (out/renderer/index.html 4.2 KB + 2.7 MB JS)
+npm run build:web                PASS (web/dist/index.html 3.2 KB + 1.25 MB JS, gzip 345 KB)
+node scripts/smoke-web.mjs       PASS (HTTP 200 + 三项静态检查)
+```
+
+### 决策记录
+
+#### Q: 为什么不真的做"浏览器里也能导出 WebM"？
+- MediaRecorder 输出的 WebM 质量比 ffmpeg 差几个量级
+- 30 分钟编码不现实（要等浏览器实时跑完）
+- 没有 alpha 通道，没有 ProRes
+- 与项目"高质量出片"定位冲突 —— 用户拿到的会是劣化版
+
+把"导出"作为桌面版**唯一卖点**，Web 只用于"5 秒看到效果，被吸引就下载"，分发漏斗更清晰。
+
+#### Q: 为什么用一份源码两个 build 而不是 monorepo / 拷贝？
+- 95% 代码是共享的（presets / render pipeline / audio / UI）
+- monorepo 加 pnpm workspace 给一个文件夹的项目用是 over-engineering
+- 拷贝源码 = 噩梦同步
+- `capabilities` + `window.api` polyfill 是侵入最小的方案
+
+#### Q: 为什么 web entry 必须先 `attachWebApi()` 再 render？
+- preload.cjs 是 Electron 主进程在 BrowserWindow 创建时注入的，window.api 在 renderer 任何代码跑之前就存在
+- Web 上没有 preload，必须由 web/main.tsx 主动挂载
+- 时序：`import App from '../src/App'` 不会触发 window.api 访问（App 是函数声明，模块 eval 期只是注册 React 组件）
+- 真正访问 window.api 是 React mount → useEffect → 那时 attachWebApi 早跑完了
+
+### 主页接入提示
+- `wavelet.clearmika.com` 子域需要在 Vercel 项目设置里加 custom domain，并在 DNS 加 CNAME 指向 `cname.vercel-dns.com`
+- `apparatus.json` 新增 `demoNote` 字段说明 web 版限制
+- 主页 Apparatus 卡片可读 `demoUrl` 渲染"在线试用"按钮，读 `downloads.windows / macos` 渲染下载按钮
+
+### 给后续 AI / 自己的接力提示
+- **❗严禁** 把"如果 isElectron 就…否则…"写得满代码都是。用 `capabilities` 开关，且渲染层一律读 `capabilities.x`
+- **❗严禁** 在 `src/` 下加任何 `import 'electron'` —— 那样 web build 会爆。Electron 类型只能从 `../electron/preload` 用 `import type` 拿
+- web demo 永远不要尝试做"浏览器内 ffmpeg.wasm"；这是产品决策不是技术限制
+- 推 main 到 GitHub 后 Vercel 自动部署，**不需要在 GH Actions 里加 Vercel 步骤**（Vercel 自己有 webhook）
+- 如果 Vercel build 失败，多半是 `npm install` 阶段缺包；先在本地 `rm -rf node_modules && npm ci && npm run build:web` 复现
+
+---
+
+## 2026-05-12 🏷️ 品牌化 + clearmika.com 主页接入（Phase 1）
+
+### 背景
+项目要作为"作品"挂到个人主页 https://clearmika.com 的 **Apparatus** 区。主页直读仓库根目录的 `apparatus.json`，按四语显示卡片 + 下载按钮 + 跳转 demo。同时还要提供 Web demo（精简版）和桌面安装包两条分发路径。
+
+本条记录的是 **Phase 1**：所有桌面版相关的对外配套。Phase 2（Web demo 拆分）留待后续。
+
+### 新增
+- **`LICENSE`** —— MIT。copyright 2026 weng20020320-ai
+- **`apparatus.json`** —— 主页元数据文件。schema：
+  - `id: 'wavelet'`（对外 slug、子域名 `wavelet.clearmika.com`）
+  - `version: '0.2.1'`、`tech: [...]`、`platforms: ['desktop', 'web']`
+  - `demoUrl`、`sourceUrl`、`downloads.{windows, macos, linux}`
+  - `screenshots.{cover, details}`
+  - `i18n.{en, zh, ja, ko}` —— en + zh 已写完整，ja + ko 留 TODO 字段等翻译
+  - 文案气质参考主页："I study molecules and the silence between them." —— 短句、名词、句号、不用营销腔
+- **`.github/workflows/release.yml`** —— 推送 `v*.*.*` tag 自动触发：
+  - matrix: `windows-latest` + `macos-latest`
+  - 步骤：checkout → setup-node@22 → `npm ci` → `npm run build` → `electron-builder --win` / `--mac --publish never`
+  - 产物上传：`actions/upload-artifact@v4`（保留 14 天）+ `softprops/action-gh-release@v2`（发布到 GitHub Release）
+  - macOS 用 `CSC_IDENTITY_AUTO_DISCOVERY=false` 防止误抓本机证书做未签名构建
+- **`docs/screenshots/README.md`** —— 主页用截图素材的命名规范 + 拍摄建议（深色背景、雾系渐变、隐藏 Tweakpane、用程序自带「快照」按钮抓真实像素）
+
+### 修改
+
+#### 1. 品牌名 Audio Visualizer → Wavelet
+对外公开面统一改成 Wavelet，内部 npm `name: 'audio-visualizer'` 保留（npm 包 id 不变避免 lockfile 折腾）。
+- `package.json`:
+  - `build.appId`: `com.audiovisualizer.app` → `com.clearmika.wavelet`
+  - `build.productName`: `Audio Visualizer` → `Wavelet`
+  - `build.nsis.shortcutName`: → `Wavelet`
+  - `build.nsis.artifactName`: → `wavelet-${version}-win-${arch}-setup.${ext}`
+  - `build.portable.artifactName`: → `wavelet-${version}-win-${arch}-portable.${ext}`
+- `electron/main.ts` BrowserWindow `title`: → `Wavelet`
+- `src/index.html` `<title>` + splash brand text: → `Wavelet` / `WAVELET`
+- `src/i18n/locales/{zh-CN,en-US,ja-JP}.ts` `topbar.brand`: → `Wavelet`
+- `打包发布.bat` / `サウンド可視化.bat` 的 cmd window title（仍保持 100% ASCII）
+- `scripts/{launcher-banner,release-banner}.mjs` 输出文案
+
+#### 2. package.json scripts + build 配置
+- 新增 `package:mac` 脚本（`clean:release && electron-vite build && electron-builder --mac`）
+- 新增 `build.mac` 配置：
+  - target: dmg × { x64, arm64 }
+  - category: `public.app-category.music`
+  - `hardenedRuntime: false` + `gatekeeperAssess: false` + `identity: null` —— 明确声明未签名
+  - `artifactName: wavelet-${version}-mac-${arch}.${ext}`
+- 新增 `build.dmg.artifactName` 同步格式
+
+#### 3. README.md 重写
+- 顶部 badges：GitHub Release 版本徽章 + MIT License 徽章
+- 中英双语完整版（先 English，后 中文）
+- 加 Downloads 段落，明确链接到 GitHub Releases
+- 加 Tech stack 段落、Adobe workflow notes 表格、Quick start 命令、发布流程说明
+- macOS 用户首次启动需要右键 → 打开（Gatekeeper 警告）的提示写在 Downloads 节
+
+### 决策记录
+
+#### Q: 内部 npm name 要不要也改成 wavelet？
+不改。`package.json` 里的 `name: 'audio-visualizer'` 是 npm package id，改它会让 `package-lock.json` 大面积重写，且没有任何好处（这个项目不发布到 npm registry）。productName 改了就够了。
+
+#### Q: macOS 要不要签名？
+不签名。原因：
+- 个人项目，付不起 99 USD/年 Apple Developer Program
+- 即使签名了，notarization 流程也很麻烦
+- 未签名 DMG 用户首次右键 → 打开就能跑，已经足够清晰
+- README + DMG 内会写明这点
+
+如果未来要签，配置入口已经预留：
+```json
+"hardenedRuntime": false,  → true
+"gatekeeperAssess": false, → true
+"identity": null           → "Developer ID Application: <Name> (<TeamID>)"
+```
+然后在 GH Actions 加 `CSC_LINK` + `CSC_KEY_PASSWORD` secrets 即可。
+
+#### Q: 为什么 Phase 2（Web demo）单独拎出来？
+Web demo 要做：
+- 拆出 `web/` 目录（或独立 vite config）
+- 给 `window.api.*` 写浏览器 polyfill（File API 替代对话框，导出按钮跳"下载桌面版"提示，etc.）
+- 适配 Vercel 部署，绑 `wavelet.clearmika.com` 子域名
+- 测试在浏览器里跑 Three.js + Web Audio + Meyda 不会触雷
+
+这是 ≥ 4-8 小时的改动，且会动到 `src/App.tsx` 里大量 `window.api.*` 调用。Phase 1 完成 + 用户验证当前桌面版能跑后再做 Phase 2，风险更可控。
+
+### 验证
+- `node -e "..."` 字节审计两个 .bat：`non-ASCII=0 BOM=false`，与上一版健康基线一致
+- 全局 grep `Audio Visualizer | AudioVisualizer | AUDIO VISUALIZER`：剩余命中只在历史 CHANGELOG 文本里（合理保留）
+- 等待：`npm run type-check` 通过（下条记录补）
+
+### 给后续 AI / 自己的接力提示
+- **❗严禁** 直接改 `apparatus.json` 的 `id` 字段而不同步主页项目 —— 主页那边按这个字段查文件路径
+- **❗严禁** 把 `release/*.exe` / `*.dmg` 提交到主分支，安装包只能挂 GitHub Release
+- 推 tag 触发 GH Actions 之前先本地 `npm run package:win` 烟测一遍，CI 失败比本地失败贵多了
+- macOS DMG 如果想本地烟测 arch=arm64，必须在 Apple Silicon Mac 上跑（CI 的 `macos-latest` 已经是 M1 runner）
+- 不要在程序代码里写死 `clearmika.com` 任何 URL —— 程序应该独立可运行
+- 如果将来加了 Linux AppImage，记得同步 `package.json build.linux`、GH Actions matrix、`apparatus.json downloads.linux`、README Downloads 节四处
 
 ---
 

@@ -1,1 +1,0 @@
-{"root":["./electron/main.ts","./electron/preload.ts","./electron/services/ffmpeg-args.ts","./electron/services/ffmpeg-locator.ts","./electron/services/ffmpeg-service.ts","./electron/services/file-service.ts","./electron/services/ipc-handlers.ts","./electron.vite.config.ts"],"version":"5.9.3"}

@@ -68,14 +68,46 @@ input[type='range'] {
 
 .app-shell {
   display: grid;
-  grid-template-rows: 48px 1fr 168px;
+  grid-template-rows: auto 48px 1fr 168px;
   grid-template-columns: 1fr 300px;
   grid-template-areas:
+    'banner banner'
     'top top'
     'view side'
     'bot bot';
   width: 100%;
   height: 100%;
+}
+
+.web-demo-banner {
+  grid-area: banner;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background: linear-gradient(
+    90deg,
+    rgba(106, 169, 255, 0.08) 0%,
+    rgba(106, 169, 255, 0.16) 50%,
+    rgba(106, 169, 255, 0.08) 100%
+  );
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  color: var(--text-dim);
+}
+
+.web-demo-banner a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 120ms ease;
+}
+
+.web-demo-banner a:hover {
+  opacity: 0.75;
+  text-decoration: underline;
 }
 
 .top-bar {

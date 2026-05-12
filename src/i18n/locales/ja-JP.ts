@@ -6,7 +6,7 @@ export const jaJP: Dictionary = {
   },
 
   topbar: {
-    brand: 'Audio Visualizer',
+    brand: 'Wavelet',
     loadAudio: 'ファイルを開く',
     loadingAudio: '読み込み中…',
     notLoadedHint:
@@ -605,6 +605,14 @@ export const jaJP: Dictionary = {
     proResFilterName: 'QuickTime ProRes 4444',
     snapshotTitle: 'スナップショットを保存',
     snapshotFilterName: 'PNG 画像',
+  },
+
+  webDemo: {
+    bannerText: 'Web 試用版 · プレビュー専用。動画の書き出しはデスクトップ版が必要です。',
+    bannerCta: 'デスクトップ版をダウンロード →',
+    exportCtaConfirm:
+      '動画の書き出しはデスクトップ版のみ対応です。ダウンロードページを開きますか？',
+    exportButtonAlt: 'デスクトップ版へ',
   },
 };
 

@@ -6,7 +6,7 @@ export const enUS: Dictionary = {
   },
 
   topbar: {
-    brand: 'Audio Visualizer',
+    brand: 'Wavelet',
     loadAudio: 'Open file',
     loadingAudio: 'Loading…',
     notLoadedHint:
@@ -605,6 +605,14 @@ export const enUS: Dictionary = {
     proResFilterName: 'QuickTime ProRes 4444',
     snapshotTitle: 'Save snapshot',
     snapshotFilterName: 'PNG image',
+  },
+
+  webDemo: {
+    bannerText: 'Web demo · preview only. Video export requires the desktop build.',
+    bannerCta: 'Download desktop →',
+    exportCtaConfirm:
+      'Video export is desktop-only. Open the download page now?',
+    exportButtonAlt: 'Get desktop',
   },
 };
 
