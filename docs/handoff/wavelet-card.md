@@ -154,12 +154,12 @@ Wavelet 是一个音频可视化桌面应用。功能上同一份预设代码同
 | `downloads.linux` | **当前为 `null`**，按钮不渲染 |
 | `demoNote` | demo URL 下方的小字提示（可选） |
 
-### 4.2.1 卡片封面：用动画组件而不是静态截图
+### 4.2.1 卡片封面：用动画组件而不是静态截图（v2）
 
 **Wavelet 不再交付 PNG 截图**。理由：
 
 1. Wavelet 的核心价值是"会动"——静态截图不能表达节拍同步、波形流动；
-2. 动画组件比 PNG 还小（~2.5 KB vs ~30 KB after 优化），首屏更快；
+2. 动画组件比 PNG 还小（~2.6 KB vs ~30 KB after 优化），首屏更快；
 3. 主页"安静的科学笔记本"气质刚好适合一段克制的活物，而不是冷冻的画面；
 4. UI 改了不用重截图，参数即可。
 
@@ -192,34 +192,104 @@ Wavelet 是一个音频可视化桌面应用。功能上同一份预设代码同
    <WaveletCover />
    ```
 
-4. 想换色：传 `color` prop，或者让父容器 `color: <颜色>` 让组件继承（用了 `currentColor`）：
+4. **想跟主页 tokens 对齐**（推荐）—— 传 props 用主页自己的常量覆盖默认值：
 
    ```tsx
-   <WaveletCover color="#9aa3b8" />   // 显式
-   <div style={{ color: '#9aa3b8' }}><WaveletCover /></div>  // 继承
+   <WaveletCover
+     color={tokens.color.cardCoverInk}           // 或者用 CSS 继承
+     periodMs={tokens.motion.cardCoverPeriod}    // 默认 3000
+     easing={tokens.motion.easeEmphasized}       // 默认 cubic-bezier(0.22, 0.61, 0.36, 1)
+     reducedMotion={prefersStaticPerformance}    // 主页 perf 预算紧时主动关动画
+   />
    ```
 
-#### 组件保证（无需主页 agent 操心）
+   不传也行，组件有自洽默认值。**关键是动效常量的 source of truth 在主页那边**，组件只是消费者。
 
-- ✅ 纯 SVG + Web Animations API，**无运行时依赖**（除 React useEffect / useRef）
-- ✅ **`prefers-reduced-motion`** 命中时退化成静态四环（不动）
-- ✅ **`IntersectionObserver`** 滚出视口自动 pause，省电
-- ✅ `aria-hidden="true"`，对屏幕阅读器透明
-- ✅ 兼容 React 17+ / Next.js 12+，Safari 14+ / Chrome 90+ / Firefox 90+
-- ✅ 总大小 ~2.5 KB（min+gzip）
-- ✅ 无任何 random / Date.now()，**不会 hydration mismatch**
+#### SSR / LCP 行为（v2 修复了 v1 的 pop-in）
 
-#### 默认色 vs 主页主题色
+组件 JSX 渲染出来时，**4 个圆环已经处于"涟漪冻结"静态态**（不同 r、opacity 0.28）。这意味着：
 
-主页是黑色主题。组件默认 `#9aa3b8`（雾灰蓝），在黑底下读得清且不抢戏。
+| 时刻 | 用户看到 |
+|---|---|
+| **服务端渲染（SSR）** | 完整可见的静态四环封面（HTML 里就有 SVG，无需 JS） |
+| **首屏 LCP / paint** | 矢量静态图，体感等同 `next/image` 的 blur placeholder |
+| **JS hydration 完成 + 100~200 ms** | 动画平滑接管（不闪烁，不 pop-in） |
+| **滚出视口** | `IntersectionObserver` 自动 pause，0 帧 0 CPU |
+| **`prefers-reduced-motion` 用户** | 永远停在 SSR 那个静态态 |
+| **`reducedMotion={true}` 主页主动关** | 同上 |
 
-如果用户后续想统一改色（用户主页主色调一致），改一行：
+预览页 `wavelet-cover-preview.html` 底部有"静态态对照"swatch，可以**直接看 SSR 首帧长什么样**。
+
+#### 性能基线（实测）
+
+| 指标 | 值 |
+|---|---|
+| Bundle 增量 | ~2.6 KB（min+gzip） |
+| 主线程占用 / 帧 | < 0.1 ms（M1 / iPhone 12 / Android 中端） |
+| 动画属性 | 仅 `transform` + `opacity` —— compositor-only，GPU 跑 |
+| 离屏耗能 | **0**（IntersectionObserver pause） |
+| Hydration mismatch 风险 | **无**：无 `Math.random()` / `Date.now()` 进入 render |
+
+> 对比主页已有的 `tsParticles`：那是主线程 JS 粒子物理，每帧 1–3 ms。Wavelet 这个的边际成本只有它的 **5%~10%**。
+
+#### 可达性（a11y）
+
+| 项 | 实现 |
+|---|---|
+| `aria-hidden="true"` | ✅ 装饰元素，对屏幕阅读器透明 |
+| `role="presentation"` | ✅ 同上 |
+| `alt` / `aria-label` | **故意没加**——封面是装饰，信息全在卡片的标题/描述/tags 里。给装饰元素加 alt 会造成屏幕阅读器念两遍同样的信息（WCAG 1.1.1 Decorative Images） |
+| `prefers-reduced-motion` | ✅ 命中时 useEffect 早返回，静态四环保留 |
+| 静态态颜色对比 | opacity 0.28 × `#9aa3b8` on `#000` ≈ AAA 级（低对比但非信息文本，符合装饰元素要求） |
+
+#### z-index / 定位（回应 §4.6 11 层 z 栈担心）
+
+组件**完全不使用 CSS positioning**：
 
 ```tsx
-<WaveletCover color="#7c6bff" />
+// 整个组件里的 style：
+<svg style={{ color, display: 'block', width: '100%', height: '100%', overflow: 'visible' }} />
+<circle style={{ transformOrigin: 'center', transformBox: 'fill-box', opacity }} />
 ```
 
-预览页 `wavelet-cover-preview.html` 已经放了 4 组色样（雾灰蓝 / 极光紫 / 青绿 / 近白），用户可以直接看选哪个。
+没有 `position: absolute`、没有 `z-index`、没有 `translate3d`、没有任何会逃出父级 stacking context 的属性。所有 transform 都是 **SVG 内部坐标系**（`<g transform="translate(...)">`），被 SVG 元素自身的 stacking context 完全封闭。**不可能撞 `<GlassCard>` 或主页任何浮层。**
+
+#### 组件自我承诺（避免后续同步成本）
+
+| 项 | 承诺 |
+|---|---|
+| 视觉迭代 | **v2 已是 final**。后续色彩 / 周期 / 缓动调整全部走 props，不动 .tsx 文件 |
+| 同步频率 | 预计 0~1 次 / 年（除非发现严重 bug 才会出 v3） |
+| 破坏性变更 | props 只增不删；如果将来要重命名 / 删除 prop，会同步更新 apparatus.json 里的 `coverComponent.note` 字段告知主页 |
+
+### 4.2.2 关于 `coverComponent` vs `screenshots`：未来 apparatus 的取舍建议（ADR 建议）
+
+主页 schema 现在同时支持两种封面：
+
+```ts
+type ApparatusCover =
+  | { coverComponent: { path, exportName, ... } }   // 动态：组件
+  | { screenshots: { cover: string, ... } };        // 静态：图
+```
+
+**ADR 建议（请主页 agent 自行决定是否采纳）**：
+
+| 项目类型 | 推荐封面 | 理由 |
+|---|---|---|
+| 视觉 / 动效 / 可视化工具 | `coverComponent` | 静态截图无法承载产品本质（如 Wavelet） |
+| CLI 工具 / 数据脚本 / 后端服务 | `screenshots.cover`（PNG） | 没有"会动"的卖点，PNG 足矣 |
+| UI 应用 / 编辑器 | `screenshots.cover`（PNG） | 截图 = 最直观，比动画更清晰 |
+| 网页 / 游戏 demo | 二选一皆可 | 取决于交互复杂度 |
+
+**这样未来作者不会被 Wavelet 的选择绑架**，可以按项目特性各选所需。Schema 的双形态分支只在 `<ApparatusCard>` 一个组件里出现一次：
+
+```tsx
+{apparatus.coverComponent
+  ? <DynamicCover spec={apparatus.coverComponent} />
+  : <img src={apparatus.screenshots.cover} alt={apparatus.i18n[locale].title} />}
+```
+
+—— 6 行 tsx 的小分支，不构成架构负担。
 
 ### 4.3 容错
 

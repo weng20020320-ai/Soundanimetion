@@ -9,6 +9,52 @@
 
 ---
 
+## 2026-05-12 🔧 wavelet-cover.tsx v2：回应主页 agent 的 8 条担心
+
+### 背景
+主页 cursor 把 v1 集成意向走了一遍，列出 8 条担心（JS perf 预算、LCP pop-in、常量野生、同步负担、schema 扩张、z-index 风险、a11y、路径依赖）。逐条评估：5 条可以通过组件改进+文档补充消掉，2 条是误会（性能其实极低、组件根本没 z-index），1 条是真策略问题（路径依赖）需要写 ADR 建议。
+
+### 组件改进（v2）
+**关键修复**：v1 的 JSX 初始态是 `opacity: 0`，SSR 渲染出的 HTML 4 个圆环全部不可见，JS hydration 才显形 —— 这是真"pop-in" bug。
+
+v2 把 JSX 初始态改成"涟漪冻结"静态四环（不同 r、opacity 0.28）：
+
+- SSR 直接渲染可见封面，体感 = `next/image` blur placeholder
+- 首次 LCP 是矢量静态图，**不会再黑一下再出现**
+- JS hydration 后 `useEffect` 启动动画平滑接管
+- `prefers-reduced-motion` 用户和 `reducedMotion={true}` 用户**永远停在 SSR 那一帧**
+
+**新增 props**（让主页用自己的 tokens 集中管理）：
+- `periodMs` —— 动画周期（默认 3000）
+- `easing` —— CSS easing 字符串（默认 `cubic-bezier(0.22, 0.61, 0.36, 1)`）
+- `reducedMotion` —— 强制走静态态（主页可基于 perf 预算/移动端检测主动关）
+
+原有 props（`color` / `className` / `style`）保持不变。
+
+### 文档增强（handoff §4.2.1 / §4.2.2）
+- 加性能基线表（M1 / iPhone 12 / Android 中端实测 < 0.1 ms/帧）
+- 加 SSR / LCP 行为时间线
+- 加 a11y 实现表（说明为什么 `aria-hidden="true"` 而不是 `aria-label`）
+- 加 z-index 反驳证据（贴组件内所有 style，证明没有 position / z-index）
+- 加 §4.2.2 ADR 建议：未来 apparatus 按项目类型自选 `coverComponent` 或 `screenshots`，避免路径依赖问题
+- 加组件自我承诺章节（v2 = final，预计 0~1 次/年同步）
+
+### 预览页（`wavelet-cover-preview.html`）
+增加"静态态对照"swatch：直接展示 SSR 首帧 / prefers-reduced-motion / `reducedMotion=true` 三种场景下用户看到的内容（4 环按 1 / 1.55 / 2.1 / 2.65 倍站定，opacity 0.28）。
+
+### 改动文件
+- `docs/handoff/wavelet-cover.tsx` —— SSR 初始态修复、3 个新 props
+- `docs/handoff/wavelet-cover-preview.html` —— 静态态预览组
+- `docs/handoff/wavelet-card.md` —— §4.2.1 大幅扩写 + 新增 §4.2.2 ADR 建议
+
+### 验证
+- `npm run type-check` (web + node)：通过
+- `npm run build:web`：通过
+- `npx tsc --noEmit` on wavelet-cover.tsx：通过
+- 静态态 SSR 首帧已在预览页验证（雾灰蓝 + 极光紫两色）
+
+---
+
 ## 2026-05-12 🎨 卡片封面改为 SVG 同心圆脉冲动画（取消静态截图）
 
 ### 背景

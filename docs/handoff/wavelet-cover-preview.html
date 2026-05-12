@@ -72,15 +72,19 @@
     100% { transform: scale(5.5); opacity: 0; }
   }
 
+  /* 静态态：SSR 首帧、prefers-reduced-motion 用户、reducedMotion=true prop 用户都会看到这个。 */
+  .wavelet-cover-static .wavelet-cover-ring {
+    animation: none;
+    opacity: 0.28;
+    transform: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .wavelet-cover-ring {
       animation: none;
       opacity: 0.28;
+      transform: none;
     }
-    .wavelet-cover-ring:nth-child(1) { transform: scale(1);    }
-    .wavelet-cover-ring:nth-child(2) { transform: scale(1.55); }
-    .wavelet-cover-ring:nth-child(3) { transform: scale(2.1);  }
-    .wavelet-cover-ring:nth-child(4) { transform: scale(2.65); }
   }
 </style>
 </head>
@@ -166,9 +170,48 @@
     </div>
   </div>
 
+  <h2 style="font-weight: 300; letter-spacing: 0.08em; color: #cdd2dc; margin-top: 24px;">静态态对照（SSR 首帧 · prefers-reduced-motion · reducedMotion=true）</h2>
+  <p class="caption" style="max-width: 640px;">
+    下面这一组**没有动画**。这是组件 SSR 渲染出的 HTML 直接显示的样子，也是 <code>prefers-reduced-motion</code> 用户和主页主动传 <code>reducedMotion=true</code> 时永远停留的状态。
+    四个圆环按倍数 1 / 1.55 / 2.1 / 2.65 站定，opacity 0.28，整体像一组"涟漪冻结"。
+    动画态启动后，会平滑接管，**不会先黑屏再 pop-in**。
+  </p>
+
+  <div class="swatches">
+    <div class="swatch">
+      <div class="frame" style="color: #9aa3b8;">
+        <svg class="wavelet-cover-svg wavelet-cover-static" viewBox="0 0 400 225" aria-hidden="true">
+          <g transform="translate(200 112.5)">
+            <circle class="wavelet-cover-ring" cx="0" cy="0" r="16"   fill="none" stroke="currentColor" stroke-width="1.1"></circle>
+            <circle class="wavelet-cover-ring" cx="0" cy="0" r="24.8" fill="none" stroke="currentColor" stroke-width="1.1"></circle>
+            <circle class="wavelet-cover-ring" cx="0" cy="0" r="33.6" fill="none" stroke="currentColor" stroke-width="1.1"></circle>
+            <circle class="wavelet-cover-ring" cx="0" cy="0" r="42.4" fill="none" stroke="currentColor" stroke-width="1.1"></circle>
+            <circle cx="0" cy="0" r="2" fill="currentColor" opacity="0.65"></circle>
+          </g>
+        </svg>
+      </div>
+      <span class="caption">静态态 · 雾灰蓝</span>
+    </div>
+
+    <div class="swatch">
+      <div class="frame" style="color: #7c6bff;">
+        <svg class="wavelet-cover-svg wavelet-cover-static" viewBox="0 0 400 225" aria-hidden="true">
+          <g transform="translate(200 112.5)">
+            <circle class="wavelet-cover-ring" cx="0" cy="0" r="16"   fill="none" stroke="currentColor" stroke-width="1.1"></circle>
+            <circle class="wavelet-cover-ring" cx="0" cy="0" r="24.8" fill="none" stroke="currentColor" stroke-width="1.1"></circle>
+            <circle class="wavelet-cover-ring" cx="0" cy="0" r="33.6" fill="none" stroke="currentColor" stroke-width="1.1"></circle>
+            <circle class="wavelet-cover-ring" cx="0" cy="0" r="42.4" fill="none" stroke="currentColor" stroke-width="1.1"></circle>
+            <circle cx="0" cy="0" r="2" fill="currentColor" opacity="0.65"></circle>
+          </g>
+        </svg>
+      </div>
+      <span class="caption">静态态 · 极光紫</span>
+    </div>
+  </div>
+
   <p class="caption" style="max-width: 560px; margin-top: 24px; line-height: 1.7;">
     这只是预览页 —— 真组件在 <code>docs/handoff/wavelet-cover.tsx</code>，主页 cursor 直接复制那个 .tsx 文件用即可。
-    本页用的是等价的 CSS keyframes 实现；.tsx 版用的是 Web Animations API（功能完全一致，TSX 版多了视口暂停 / reduced-motion 优雅降级）。
+    本页用的是等价的 CSS keyframes 实现；.tsx 版用的是 Web Animations API（功能完全一致，TSX 版多了视口暂停 / reduced-motion 优雅降级 / SSR-可见初始态）。
   </p>
 </body>
 </html>
