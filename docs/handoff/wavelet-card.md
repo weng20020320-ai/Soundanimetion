@@ -45,8 +45,8 @@ Wavelet 是一个音频可视化桌面应用。功能上同一份预设代码同
   "demoNote": "Web demo is preview-only. Video export is desktop-only.",
   "sourceUrl": "https://github.com/weng20020320-ai/Soundanimetion",
   "downloads": {
-    "windows": "https://github.com/weng20020320-ai/Soundanimetion/releases/latest/download/wavelet-0.2.1-win-x64-setup.exe",
-    "macos": "https://github.com/weng20020320-ai/Soundanimetion/releases/latest/download/wavelet-0.2.1-mac-arm64.dmg",
+    "windows": "https://github.com/weng20020320-ai/Soundanimetion/releases/latest/download/wavelet-win-x64-setup.exe",
+    "macos": "https://github.com/weng20020320-ai/Soundanimetion/releases/latest/download/wavelet-mac-arm64.dmg",
     "linux": null
   },
   "screenshots": {

@@ -80,11 +80,11 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Wavelet",
-      "artifactName": "wavelet-${version}-win-${arch}-setup.${ext}"
+      "artifactName": "wavelet-win-${arch}-setup.${ext}"
     },
     "portable": {
       "requestExecutionLevel": "user",
-      "artifactName": "wavelet-${version}-win-${arch}-portable.${ext}"
+      "artifactName": "wavelet-win-${arch}-portable.${ext}"
     },
     "mac": {
       "target": [
@@ -97,13 +97,13 @@
         }
       ],
       "category": "public.app-category.music",
-      "artifactName": "wavelet-${version}-mac-${arch}.${ext}",
+      "artifactName": "wavelet-mac-${arch}.${ext}",
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
       "identity": null
     },
     "dmg": {
-      "artifactName": "wavelet-${version}-mac-${arch}.${ext}"
+      "artifactName": "wavelet-mac-${arch}.${ext}"
     }
   }
 }

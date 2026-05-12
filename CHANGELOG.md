@@ -9,6 +9,45 @@
 
 ---
 
+## 2026-05-12 🔗 发布产物文件名去掉版本号
+
+### 背景
+主页 (`clearmika.com`) 的 Apparatus 卡片要长期稳定指向 `releases/latest/download/<file>`。`releases/latest/` 这一段会自动跟着新 release 走 ✅，但**文件名里如果带版本号（`wavelet-0.2.1-win-x64-setup.exe`），下一次发版 URL 就 404 了**。主页那边不可能每次跟着改。
+
+### 决策
+把 electron-builder 的所有 `artifactName` 模板里 `${version}` 这一段去掉，文件名只保留**平台 + 架构 + 类型**：
+
+| 平台 | 旧 | 新 |
+|---|---|---|
+| Win NSIS  | `wavelet-${version}-win-${arch}-setup.exe`    | `wavelet-win-${arch}-setup.exe`    |
+| Win 便携  | `wavelet-${version}-win-${arch}-portable.exe` | `wavelet-win-${arch}-portable.exe` |
+| macOS dmg | `wavelet-${version}-mac-${arch}.dmg`          | `wavelet-mac-${arch}.dmg`          |
+
+> 版本号信息仍然由应用内（`__APP_VERSION__`）和 `apparatus.json.version` 字段展示，没有丢失。
+
+### 改动
+- `package.json` → `build.nsis.artifactName` / `build.portable.artifactName` / `build.mac.artifactName` / `build.dmg.artifactName` 四处都去掉 `${version}`
+- `apparatus.json` → `downloads.windows` / `downloads.macos` URL 同步改成无版本名
+- `docs/handoff/wavelet-card.md` → 示例 URL 同步
+- `README.md`（英 + 中）→ 下载说明里的示例文件名同步
+- `scripts/release-banner.mjs` → 打包横幅里的提示文本同步
+
+### macOS Intel 用户说明
+主页卡片的 `downloads.macos` 字段只能写一个 URL，按主页 agent 的决定指向 `wavelet-mac-arm64.dmg`。Apple Silicon 用户开箱即用；**Intel Mac 用户需要自己去 Release 页面找 `wavelet-mac-x64.dmg`**。x64 build 还在产出，没有取消。
+
+### 验证 / 不影响范围
+- ✅ 没有 `electron-updater` / `autoUpdater` 代码，`latest.yml` 由 electron-builder 同步生成，引用关系自洽
+- ✅ `.github/workflows/release.yml` 用 glob `release/*.exe`、`release/*.dmg`，对文件名格式不敏感，**不需要改**
+- ✅ Win NSIS 和 portable 名字带 `-setup` / `-portable` 后缀区分，不冲突
+- ✅ macOS x64 和 arm64 用 `${arch}` 占位符区分，不冲突
+- ✅ `type-check`（web + node）和 `build:web` 均通过
+- ✅ 应用源码不读自己的安装包名，runtime 行为不变
+
+### 下一步
+首次正式发版前 P0 部分已就绪，等截图（`docs/screenshots/cover.png` 等）和主页接入完成后，`git tag v0.2.1 && git push origin v0.2.1` 触发 release.yml 即可。
+
+---
+
 ## 2026-05-12 🌐 Web demo 拆分（Phase 2）+ auto-push 规则
 
 ### 背景
