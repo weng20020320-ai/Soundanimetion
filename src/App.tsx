@@ -94,6 +94,12 @@ export default function App() {
   const timelineForFileRef = useRef<string | null>(null);
   const lastFfmpegLogRef = useRef<string | null>(null);
   const encoderFallbackNoticeRef = useRef<string | null>(null);
+  /**
+   * 导出期间将这个 ref 设为 true，所有可能调 ctx.setSize() 的回调（ResizeObserver、
+   * store 订阅）都会跳过执行，避免外部信号在导出中途把 canvas 改回 letterbox 大小
+   * 从而污染输出帧。导出 finally 阶段重置为 false 并手动 re-apply 一次。
+   */
+  const isExportingRef = useRef(false);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -234,6 +240,7 @@ export default function App() {
     });
 
     const resize = () => {
+      if (isExportingRef.current) return;
       const aspect = getAspectRatio(
         useAppStore.getState().targetAspectId
       );
@@ -248,7 +255,10 @@ export default function App() {
     ro.observe(container);
 
     // 订阅 store 里的 aspect / viewScale 变化，立刻 reapply。
+    // 导出期间整体短路（在 resize / setViewScale 里都 guard），等导出结束 finally
+    // 块会手动 re-apply 一次最新值。
     const unsubAspect = useAppStore.subscribe((state, prev) => {
+      if (isExportingRef.current) return;
       if (state.targetAspectId !== prev.targetAspectId) resize();
       if (state.viewScale !== prev.viewScale) {
         ctx.setViewScale(state.viewScale);
@@ -598,6 +608,9 @@ export default function App() {
     preview.stop();
     encoderFallbackNoticeRef.current = null;
 
+    // 标记导出进行中，让 ResizeObserver / store 订阅短路，避免外部 setSize 打断导出。
+    isExportingRef.current = true;
+
     // 若用户勾选"纯净背景"，导出期间临时关掉颗粒/暗角（不破坏用户的 store 设定，
     // 导出结束后 finally 块恢复）。
     let savedPostFXForClean: PostFXParams | null = null;
@@ -697,6 +710,25 @@ export default function App() {
       if (savedPostFXForClean && postFXRef.current) {
         postFXRef.current.setParams(savedPostFXForClean);
       }
+      // 解除导出锁定，并手动 re-apply 一次画布尺寸 + 缩放。
+      // OfflineRenderer 在结束时会把 ctx.setSize 还原到导出前的 letterbox 尺寸，
+      // 但万一用户在导出期间改过 aspect / viewScale（即使 UI 被禁用，store 也可能从
+      // 别处被改），这里追加一次保证 preview 立即对齐到当前 store 状态。
+      isExportingRef.current = false;
+      const ctxNow = ctxRef.current;
+      const container = viewportRef.current;
+      if (ctxNow && container) {
+        const aspect = getAspectRatio(
+          useAppStore.getState().targetAspectId
+        );
+        const box = computeLetterboxSize(
+          container.clientWidth,
+          container.clientHeight,
+          aspect
+        );
+        ctxNow.setSize(box.w, box.h, true);
+        ctxNow.setViewScale(useAppStore.getState().viewScale);
+      }
       preview.start();
     }
   }
@@ -751,7 +783,7 @@ export default function App() {
           {fileName ? `${fileName} · ${sourceTypeLabel}` : t.topbar.notLoadedHint}
         </span>
         <div className="spacer" />
-        <ViewportControls />
+        <ViewportControls disabled={!!exportProgress} />
         <span className="label">{t.topbar.presetLabel}</span>
         <PresetSelector value={activePresetId} onChange={setActivePreset} />
         <button

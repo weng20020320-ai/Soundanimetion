@@ -12,8 +12,14 @@ import { useT } from '../i18n';
  *
  * - aspect 影响相机宽高比 + 预览 letterbox + 导出默认分辨率
  * - viewScale 同时影响预览和导出（WYSIWYG），通过 presetGroup.scale 实现
+ *
+ * disabled：导出期间传 true，避免用户在导出中途改这两个值导致输出帧被打断。
  */
-export function ViewportControls() {
+interface ViewportControlsProps {
+  disabled?: boolean;
+}
+
+export function ViewportControls({ disabled = false }: ViewportControlsProps) {
   const t = useT();
   const aspectId = useAppStore((s) => s.targetAspectId);
   const setAspectId = useAppStore((s) => s.setTargetAspectId);
@@ -34,6 +40,7 @@ export function ViewportControls() {
         className="viewport-aspect-select"
         value={aspectId}
         onChange={(e) => setAspectId(e.target.value as AspectId)}
+        disabled={disabled}
       >
         {ASPECT_OPTIONS.map((opt) => (
           <option key={opt.id} value={opt.id}>
@@ -54,6 +61,7 @@ export function ViewportControls() {
         value={viewScale}
         onChange={(e) => setViewScale(parseFloat(e.target.value))}
         title={t.viewport.zoomTitle}
+        disabled={disabled}
       />
       <span className="dim viewport-zoom-readout">
         {viewScale.toFixed(2)}×
