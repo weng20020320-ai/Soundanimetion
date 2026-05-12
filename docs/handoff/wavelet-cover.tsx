@@ -4,6 +4,21 @@
  * 这是给 clearmika.com 主页的 Wavelet apparatus 卡片用的封面组件。
  * 主页把这个文件复制到自己项目（推荐放在 components/apparatus-covers/）后直接 import。
  *
+ * 真理之源（v3 起）
+ * ------------------
+ * **视觉参数（color / periodMs / easing）的 source of truth 是 `apparatus.json`**
+ * 的 `coverComponent.props` 字段，不是这个文件里的 DEFAULT_* 常量。
+ *
+ * 本文件里的 DEFAULT_* 仅作为 fallback：当主页忘记传 props 时组件还能跑。
+ * 主页正常集成应该是：
+ *
+ *     <WaveletCover {...apparatus.coverComponent.props} />
+ *
+ * 改 Wavelet 的色 / 周期 / 缓动 = 改 apparatus.json 一处。**不应改本文件**。
+ * 本文件只在以下两种场景才该修改：
+ *   1) 加新 prop（非破坏性扩展）
+ *   2) 修 SSR / a11y / 性能相关 bug
+ *
  * 设计意图
  * --------
  * 四个同心圆环错相位向外扩散 + 中心一点。整体克制，单色，3 秒一轮。
@@ -49,6 +64,8 @@ const BASE_RADIUS = 16;
 const MAX_SCALE = 5.5;
 const STROKE_WIDTH = 1.1;
 
+// FALLBACK 默认值。生产环境应由 apparatus.json.coverComponent.props 提供具体值。
+// 这两个常量只是为了让组件在主页"忘记传 props"时仍然能跑。
 const DEFAULT_PERIOD_MS = 3000;
 const DEFAULT_EASING = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
 

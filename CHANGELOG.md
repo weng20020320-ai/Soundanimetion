@@ -9,6 +9,71 @@
 
 ---
 
+## 2026-05-12 🧬 cover v3：视觉参数升进 apparatus.json，恢复 JSON 真理之源
+
+### 背景
+主页 cursor v2 复审后又提两个"暧昧地带"：
+
+1. **apparatus.json 不再是真理之源**：v2 把 color / periodMs / easing 作为默认值留在 TSX 里，意味着改色得改 .tsx 文件并重 sync，JSON 降级成了"指针 + 代码"组合
+2. **主页读不到组件源码**：他没读过 `wavelet-cover.tsx` 文件本身，因此无法判断 Framer Motion 用量、SSR safe 性、useEffect 清理等
+
+第二条是信息差（公开仓库 5 分钟可审完，直接给永久链接即可），**第一条是真架构问题**。
+
+### v3 修复（修法 1）
+把视觉参数**升到** `apparatus.json.coverComponent.props`：
+
+```json
+"coverComponent": {
+  "path": "docs/handoff/wavelet-cover.tsx",
+  "exportName": "WaveletCover",
+  "preview": "docs/handoff/wavelet-cover-preview.html",
+  "props": {
+    "color": "#9aa3b8",
+    "periodMs": 3000,
+    "easing": "cubic-bezier(0.22, 0.61, 0.36, 1)"
+  },
+  "note": "..."
+}
+```
+
+TSX 里 `DEFAULT_*` 常量**保留作为 fallback**（健壮性 / 主页忘传 props 也能跑），但**生产值由 JSON 提供**。
+
+### 集成模式（新）
+```tsx
+// 之前
+<WaveletCover />
+
+// 现在
+<WaveletCover {...apparatus.coverComponent.props} />
+
+// 想用主页 motion tokens 覆盖（spread 顺序决定优先级）
+<WaveletCover
+  {...apparatus.coverComponent.props}
+  easing={tokens.motion.easeEmphasized}
+/>
+```
+
+### 改动文件
+- `apparatus.json` —— `coverComponent` 新增 `props` 字段（color / periodMs / easing），`note` 重写说明真理之源契约
+- `docs/handoff/wavelet-cover.tsx` —— 顶部 JSDoc 加"真理之源"小节明确 .tsx 不是视觉决策的家；DEFAULT_* 常量旁加 fallback 注释。**代码逻辑零变更**
+- `docs/handoff/wavelet-card.md` §4.2.1 —— 集成代码改 spread 模式；"组件自我承诺"小节升级成"真理之源契约"表
+
+### 用户承诺
+用户口头确认：图标基本就这样了，**不打算继续迭代视觉**。所以即使 props 提升不带来"频繁改 JSON"的实际场景，它的存在仍然是为了**架构上把决策权交回主页**。
+
+### 不增加的东西
+- ❌ 不加 JSON Schema 校验文件（用户不打算继续迭代，build-time 校验属于过度工程）
+- ❌ 不改 props 的签名（类型只增不删）
+- ❌ 不引入 build 步骤
+
+### 验证
+- `npm run type-check`（web + node）：通过
+- `npm run build:web`：通过
+- `npx tsc --noEmit` on wavelet-cover.tsx：通过
+- TSX 代码逻辑无任何改动，行为与 v2 完全一致；仅文档 / 注释 / JSON 数据搬运
+
+---
+
 ## 2026-05-12 🔧 wavelet-cover.tsx v2：回应主页 agent 的 8 条担心
 
 ### 背景

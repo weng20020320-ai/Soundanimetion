@@ -182,28 +182,30 @@ Wavelet 是一个音频可视化桌面应用。功能上同一份预设代码同
    import { WaveletCover } from '@/components/apparatus-covers/wavelet-cover';
    ```
 
-3. 替换原来 `<img src={cover} />` 的位置：
+3. 替换原来 `<img src={cover} />` 的位置 —— **用 spread 从 apparatus.json 读视觉参数**：
 
    ```tsx
    // 之前
    <img src={apparatus.screenshots.cover} alt={apparatus.i18n[locale].title} />
 
-   // 现在
-   <WaveletCover />
+   // 现在（推荐）
+   <WaveletCover {...apparatus.coverComponent.props} />
    ```
 
-4. **想跟主页 tokens 对齐**（推荐）—— 传 props 用主页自己的常量覆盖默认值：
+   `apparatus.coverComponent.props` 当前包含 `color` / `periodMs` / `easing`，主页**通过更新 JSON 直接改视觉**，不再需要重 sync .tsx 文件。**JSON 是视觉真理之源**，TSX 只是渲染器（DEFAULT_* 常量仅作 fallback）。
+
+4. **想用主页 motion tokens 覆盖 JSON 默认值**（可选）—— spread 顺序决定优先级（后写的覆盖先写的）：
 
    ```tsx
    <WaveletCover
-     color={tokens.color.cardCoverInk}           // 或者用 CSS 继承
-     periodMs={tokens.motion.cardCoverPeriod}    // 默认 3000
-     easing={tokens.motion.easeEmphasized}       // 默认 cubic-bezier(0.22, 0.61, 0.36, 1)
-     reducedMotion={prefersStaticPerformance}    // 主页 perf 预算紧时主动关动画
+     {...apparatus.coverComponent.props}            // 先：JSON 提供的默认
+     easing={tokens.motion.easeEmphasized}          // 后：主页 tokens 覆盖
+     periodMs={tokens.motion.cardCoverPeriod}       // 后：主页 tokens 覆盖
+     reducedMotion={prefersStaticPerformance}       // perf 预算紧时主动关动画
    />
    ```
 
-   不传也行，组件有自洽默认值。**关键是动效常量的 source of truth 在主页那边**，组件只是消费者。
+   不传任何 prop 也能跑（组件有自洽 fallback 默认值），**但生产环境建议至少 spread JSON**。
 
 #### SSR / LCP 行为（v2 修复了 v1 的 pop-in）
 
@@ -254,13 +256,16 @@ Wavelet 是一个音频可视化桌面应用。功能上同一份预设代码同
 
 没有 `position: absolute`、没有 `z-index`、没有 `translate3d`、没有任何会逃出父级 stacking context 的属性。所有 transform 都是 **SVG 内部坐标系**（`<g transform="translate(...)">`），被 SVG 元素自身的 stacking context 完全封闭。**不可能撞 `<GlassCard>` 或主页任何浮层。**
 
-#### 组件自我承诺（避免后续同步成本）
+#### 真理之源契约（v3 起）
 
-| 项 | 承诺 |
+| 项 | 状态 / 承诺 |
 |---|---|
-| 视觉迭代 | **v2 已是 final**。后续色彩 / 周期 / 缓动调整全部走 props，不动 .tsx 文件 |
-| 同步频率 | 预计 0~1 次 / 年（除非发现严重 bug 才会出 v3） |
-| 破坏性变更 | props 只增不删；如果将来要重命名 / 删除 prop，会同步更新 apparatus.json 里的 `coverComponent.note` 字段告知主页 |
+| 视觉真理之源 | **`apparatus.json.coverComponent.props`**（color / periodMs / easing），**不是 .tsx** |
+| 改视觉所需操作 | 主页 git pull 一次 JSON，**零代码改动** |
+| 视觉迭代频率（用户口头承诺） | ~0 次 / 年。"图标基本就这样了" |
+| TSX 本身的迭代触发条件 | 仅在 (1) 加新可选 prop，或 (2) 修 SSR / a11y / 性能 bug 时才动 .tsx |
+| 破坏性变更 | props 只增不删；新 prop 一律带默认值，主页不知道也能正常渲染 |
+| `DEFAULT_*` 常量在 .tsx 里的角色 | **仅 fallback**，当主页忘记 spread JSON 时组件还能跑；**生产值由 JSON 提供** |
 
 ### 4.2.2 关于 `coverComponent` vs `screenshots`：未来 apparatus 的取舍建议（ADR 建议）
 

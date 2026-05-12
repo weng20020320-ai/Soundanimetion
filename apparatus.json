@@ -26,7 +26,12 @@
     "path": "docs/handoff/wavelet-cover.tsx",
     "exportName": "WaveletCover",
     "preview": "docs/handoff/wavelet-cover-preview.html",
-    "note": "Wavelet is dynamic by nature; the card cover is a tiny live SVG animation (concentric ring pulse) instead of a static screenshot. Drop the .tsx file into the homepage project (e.g. components/apparatus-covers/) and import the default export. No runtime dependencies beyond React. Defaults to color '#9aa3b8' on dark backgrounds; override via the `color` prop or parent CSS `color`."
+    "props": {
+      "color": "#9aa3b8",
+      "periodMs": 3000,
+      "easing": "cubic-bezier(0.22, 0.61, 0.36, 1)"
+    },
+    "note": "Visual params (color/periodMs/easing) live in `props` above. apparatus.json is the source of truth for visuals; the TSX is a pure renderer that only provides fallback defaults. Integration: `<WaveletCover {...apparatus.coverComponent.props} />`. To override with homepage motion tokens, spread JSON first then your tokens (later wins): `<WaveletCover {...apparatus.coverComponent.props} easing={tokens.motion.easeEmphasized} />`. No runtime deps beyond React. SSR-safe and reduced-motion aware (see docs/handoff/wavelet-card.md §4.2.1)."
   },
   "i18n": {
     "en": {
