@@ -44,16 +44,16 @@
     "ja": {
       "title": "Wavelet",
       "meta": "instrument 002 · desktop + web · 2026",
-      "description": "TODO: 日本語の一行説明（≤ 60 字）",
-      "overview": "TODO: 日本語の詳細説明",
-      "tags": []
+      "description": "音声を映像に変えるデスクトップツール。",
+      "overview": "二つのパイプラインが同じプリセットコードを共有する。リアルタイム側は 60 fps でプレビューを描き、オフライン側はトラック全体を読み、フレーム単位で特徴を索引し、任意の解像度で MP4・ProRes 4444・PNG 連番として書き出す。Web 版はプレビュー専用。書き出しはデスクトップ版が必要。",
+      "tags": ["音声", "可視化", "レンダリング", "three.js"]
     },
     "ko": {
       "title": "Wavelet",
       "meta": "instrument 002 · desktop + web · 2026",
-      "description": "TODO: 한국어 한 줄 설명 (≤ 60 자)",
-      "overview": "TODO: 한국어 상세 설명",
-      "tags": []
+      "description": "소리를 움직이는 이미지로 바꾸는 데스크톱 도구.",
+      "overview": "두 파이프라인이 같은 프리셋 코드를 공유한다. 실시간 파이프라인은 60 fps로 미리보기를 그리고, 오프라인 파이프라인은 트랙 전체를 읽어 프레임 단위로 특징을 색인한 뒤 임의 해상도로 MP4, ProRes 4444, PNG 시퀀스로 렌더링한다. 웹 데모는 미리보기 전용. 내보내기는 데스크톱 버전이 필요하다.",
+      "tags": ["소리", "시각화", "렌더링", "three.js"]
     }
   }
 }
