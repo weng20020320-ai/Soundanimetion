@@ -3,6 +3,16 @@ chcp 65001 > nul
 title Wavelet (dev)
 cd /d "%~dp0"
 
+where node >nul 2>nul
+if errorlevel 1 (
+    echo.
+    echo [error] Node.js not found in PATH.
+    echo Please install Node.js LTS from https://nodejs.org/
+    echo.
+    pause
+    exit /b 1
+)
+
 call node "scripts\launcher-banner.mjs" banner
 
 if not exist "node_modules" (
@@ -16,3 +26,16 @@ if not exist "node_modules" (
 )
 
 call npm run dev
+set DEV_EXIT=%errorlevel%
+echo.
+echo --------------------------------------------------
+if %DEV_EXIT% NEQ 0 (
+    echo [error] npm run dev exited with code %DEV_EXIT%
+    echo Scroll up to see the error log.
+) else (
+    echo Wavelet dev server stopped.
+)
+echo --------------------------------------------------
+echo Press any key to close this window...
+pause >nul
+exit /b %DEV_EXIT%
