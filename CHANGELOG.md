@@ -9,6 +9,47 @@
 
 ---
 
+## 2026-05-12 🎨 卡片封面改为 SVG 同心圆脉冲动画（取消静态截图）
+
+### 背景
+原计划是给主页 `apparatus` 卡片提供一张 1920×1080 的 PNG 封面 + 3 张 detail 画廊截图。用户考虑到：
+
+1. Wavelet 的核心价值是"会动"，静态截图根本表达不了节拍同步 / 波形流动
+2. 主页是黑色主题 + "安静的科学笔记本"气质，与其塞一张冻住的画面，不如一段克制的活物
+3. 总图量 4 张 PNG（即使 Next/Image 优化后也有 ~30 KB×4 = ~120 KB）
+
+决定把封面换成一段**纯 SVG + Web Animations API** 的同心圆脉冲动画（D1 设计）。
+
+### 设计
+- 4 个同心圆环，错相位向外扩散，3 秒一轮
+- 中心一个 2px 的实心点
+- 默认色 `#9aa3b8`（雾灰蓝，在黑底上读得清且不抢戏）
+- `currentColor` 继承，可用 `color` prop 或父级 CSS 覆盖
+- viewBox 16:9，与原 PNG 占位框尺寸一致
+
+### 工程保证
+- ~2.5 KB（min+gzip），比 PNG 优化后小 10 倍
+- 纯 React + `useEffect` / `useRef`，**无运行时依赖**
+- `prefers-reduced-motion` 命中时退化为静态四环
+- `IntersectionObserver` 滚出视口自动 pause，省电
+- 无 `random` / `Date.now()`，**不会 hydration mismatch**
+- 兼容 Safari 14+ / Chrome 90+ / Firefox 90+ / React 17+ / Next.js 12+
+
+### 改动文件
+- **NEW** `docs/handoff/wavelet-cover.tsx` — 给主页直接复制的 React 组件
+- **NEW** `docs/handoff/wavelet-cover-preview.html` — 黑底 + 4 色样的视觉预览页，浏览器双击就能看
+- `apparatus.json` — `screenshots.cover` 改 `null`、`screenshots.details` 改 `[]`，新增 `coverComponent` 字段指向 .tsx 文件
+- `docs/handoff/wavelet-card.md` — 把"提供截图"章节换成"卡片封面：用动画组件"章节，附完整集成步骤
+- `docs/screenshots/README.md` — 标记 DEPRECATED，保留旧截图规范作为历史备用文档
+
+### 主页 agent 这边的工作量
+- 旧方案：等截图 → 放进 `public/apparatus/wavelet/` → `<img src=...>`
+- 新方案：复制一个 .tsx 文件 → import → `<WaveletCover />`
+
+替换是机械的，没有视觉决策需要重新做。
+
+---
+
 ## 2026-05-12 🔗 发布产物文件名去掉版本号
 
 ### 背景

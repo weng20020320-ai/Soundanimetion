@@ -19,12 +19,14 @@
     "linux": null
   },
   "screenshots": {
-    "cover": "docs/screenshots/cover.png",
-    "details": [
-      "docs/screenshots/detail-01.png",
-      "docs/screenshots/detail-02.png",
-      "docs/screenshots/detail-03.png"
-    ]
+    "cover": null,
+    "details": []
+  },
+  "coverComponent": {
+    "path": "docs/handoff/wavelet-cover.tsx",
+    "exportName": "WaveletCover",
+    "preview": "docs/handoff/wavelet-cover-preview.html",
+    "note": "Wavelet is dynamic by nature; the card cover is a tiny live SVG animation (concentric ring pulse) instead of a static screenshot. Drop the .tsx file into the homepage project (e.g. components/apparatus-covers/) and import the default export. No runtime dependencies beyond React. Defaults to color '#9aa3b8' on dark backgrounds; override via the `color` prop or parent CSS `color`."
   },
   "i18n": {
     "en": {
