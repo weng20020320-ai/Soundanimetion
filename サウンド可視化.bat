@@ -25,6 +25,20 @@ if not exist "node_modules" (
     )
 )
 
+REM Electron postinstall sometimes fails silently and leaves the binary
+REM missing. electron-vite then dies with "Error: Electron uninstall".
+REM Self-heal by re-running electron's install script.
+if not exist "node_modules\electron\dist\electron.exe" (
+    echo.
+    echo [self-heal] electron binary missing, re-downloading...
+    call node "node_modules\electron\install.js"
+    if errorlevel 1 (
+        echo [error] electron install.js failed. Check your network and try again.
+        pause
+        exit /b 1
+    )
+)
+
 call npm run dev
 set DEV_EXIT=%errorlevel%
 echo.
