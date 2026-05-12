@@ -1,0 +1,86 @@
+{
+  "name": "audio-visualizer",
+  "version": "0.2.1",
+  "description": "本地音频可视化桌面应用，支持流畅实时预览与高质量离线渲染（MP4 / ProRes 4444 / PNG 序列）",
+  "main": "out/main/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "start": "electron-vite preview",
+    "clean:release": "node scripts/clean-release.mjs",
+    "package:win": "npm run clean:release && electron-vite build && electron-builder --win",
+    "type-check:web": "tsc --noEmit -p tsconfig.web.json",
+    "type-check:node": "tsc --noEmit -p tsconfig.node.json",
+    "type-check": "npm run type-check:web && npm run type-check:node"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.3.0",
+    "meyda": "^5.6.3",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "three": "^0.184.0",
+    "tweakpane": "^4.0.5",
+    "wavesurfer.js": "^7.12.6",
+    "web-audio-beat-detector": "^8.2.36",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@tweakpane/core": "^2.0.5",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.184.1",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^42.0.0",
+    "electron-builder": "^26.8.1",
+    "electron-vite": "^5.0.0",
+    "typescript": "^5.6.3",
+    "vite": "^7.3.3"
+  },
+  "build": {
+    "appId": "com.audiovisualizer.app",
+    "productName": "Audio Visualizer",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "node_modules/ffmpeg-static/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Audio Visualizer",
+      "artifactName": "AudioVisualizer-${version}-setup.${ext}"
+    },
+    "portable": {
+      "requestExecutionLevel": "user",
+      "artifactName": "AudioVisualizer-${version}-portable.${ext}"
+    }
+  }
+}

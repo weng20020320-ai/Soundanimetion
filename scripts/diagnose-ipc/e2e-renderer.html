@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<h1>e2e test</h1>
+<pre id="log"></pre>
+<script>
+(async () => {
+  const W = 320, H = 240, NUM = 30;
+  const FRAME_BYTES = W * H * 4;
+  const log = (...args) => {
+    console.log('[renderer]', ...args);
+    document.getElementById('log').textContent += args.join(' ') + '\n';
+  };
+
+  const tmpDir = 'C:\\Users\\Axile\\Desktop\\nabesima\\サウンド\\tmp-diagnose';
+
+  // ====== Test 1: HAPPY PATH ======
+  log('=== Test 1: happy path (libx264, no audio) ===');
+  const okOut = tmpDir + '\\e2e_ok.mp4';
+  const okStart = await e2e.startOk(okOut);
+  log('  session:', okStart.sessionId, 'log:', okStart.logPath);
+
+  let okAcks = 0;
+  e2e.onAck(okStart.sessionId, () => okAcks++);
+
+  await new Promise(r => setTimeout(r, 100)); // let port arrive
+
+  const t0 = Date.now();
+  for (let i = 0; i < NUM; i++) {
+    const pixels = new Uint8Array(FRAME_BYTES);
+    pixels[0] = i;
+    pixels[1] = (i * 8) & 0xff;
+    e2e.sendFrame(okStart.sessionId, i, pixels);
+  }
+  const sendDur = Date.now() - t0;
+  log(`  sent ${NUM} frames in ${sendDur}ms`);
+
+  // 等所有 ack 回来再 finish（业务里 OfflineRenderer 会用 transport.drain 实现这个逻辑）
+  const ackDeadline = Date.now() + 5000;
+  while (okAcks < NUM && Date.now() < ackDeadline) {
+    await new Promise(r => setTimeout(r, 50));
+  }
+  log(`  acks arrived: ${okAcks}/${NUM} (${Date.now() - t0}ms total)`);
+
+  let finishResult;
+  try {
+    finishResult = await e2e.finish(okStart.sessionId);
+    log('  finish OK:', JSON.stringify(finishResult));
+  } catch (e) {
+    log('  finish FAILED:', e.message);
+  }
+
+  await e2e.report('test1_happy', {
+    okAcks,
+    finish: finishResult,
+    sendDurMs: sendDur,
+  });
+
+  // ====== Test 2: EARLY EXIT (bad audio path) ======
+  log('=== Test 2: early-exit (invalid audio path) ===');
+  const badOut = tmpDir + '\\e2e_bad.mp4';
+  const badStart = await e2e.startBad(badOut);
+  log('  session:', badStart.sessionId, 'log:', badStart.logPath);
+
+  // 等 ffmpeg 检查输入文件后 die
+  let earlyExitDetected = false;
+  let earlyExitMsg = '';
+  try {
+    finishResult = await e2e.finish(badStart.sessionId);
+    log('  finish (unexpected OK):', JSON.stringify(finishResult));
+  } catch (e) {
+    earlyExitDetected = true;
+    earlyExitMsg = e.message;
+    log('  finish FAILED (as expected):', e.message.slice(0, 120) + '...');
+  }
+
+  await e2e.report('test2_earlyExit', {
+    earlyExitDetected,
+    msgLen: earlyExitMsg.length,
+    msgIncludesStderr: /stderr|nonexistent|No such file|Invalid/i.test(earlyExitMsg),
+  });
+
+  // ====== 报告 log 文件是否存在 ======
+  await e2e.report('logFiles', {
+    okLog: okStart.logPath,
+    badLog: badStart.logPath,
+  });
+
+  await e2e.done();
+})();
+</script>
+</body></html>

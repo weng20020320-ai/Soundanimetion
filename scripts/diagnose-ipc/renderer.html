@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>diag</title></head>
+<body>
+<h1>IPC diagnosis running...</h1>
+<pre id="log"></pre>
+<script>
+(async () => {
+  const NUM_FRAMES = 90;
+  const FRAME_BYTES = 1920 * 1080 * 4;
+  const startedAt = Date.now();
+  const log = (...args) => {
+    const t = String(Date.now() - startedAt).padStart(5);
+    console.log(`[renderer ${t}ms]`, ...args);
+    document.getElementById('log').textContent += `[${t}ms] ${args.join(' ')}\n`;
+  };
+
+  log('renderer started');
+  let ackCount = 0;
+  diag.onAck((frameIndex) => {
+    ackCount++;
+  });
+
+  await diag.openPort();
+  log('port opened, waiting 100ms for delivery...');
+  await new Promise(r => setTimeout(r, 100));
+
+  let sent = 0;
+  let sendError = null;
+  for (let i = 0; i < NUM_FRAMES; i++) {
+    const pixels = new Uint8Array(FRAME_BYTES);
+    pixels[0] = i & 0xff;
+    pixels[1] = (i >> 8) & 0xff;
+    try {
+      diag.sendFrame(i, pixels);
+      sent++;
+    } catch (e) {
+      sendError = e.message;
+      log(`SEND FAILED at frame ${i}: ${e.message}`);
+      break;
+    }
+    if (i < 3 || i % 30 === 0) log(`sent frame ${i}`);
+  }
+  log(`renderer sent ${sent}/${NUM_FRAMES} frames in ${Date.now() - startedAt}ms`);
+
+  // 等 1 秒看 ack
+  await new Promise(r => setTimeout(r, 1000));
+  log(`acks received after 1s wait: ${ackCount}/${NUM_FRAMES}`);
+
+  // 再等 2 秒
+  await new Promise(r => setTimeout(r, 2000));
+  log(`acks after total 3s wait: ${ackCount}/${NUM_FRAMES}`);
+
+  // 通知 main 结束
+  diag.signalDone();
+  await diag.report({ sent, ackCount, sendError });
+})();
+</script>
+</body>
+</html>

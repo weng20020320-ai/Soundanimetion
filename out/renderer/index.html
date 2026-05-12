@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob:; script-src 'self' 'unsafe-eval'; worker-src 'self' blob:; media-src 'self' blob: file:;" />
+    <title>Audio Visualizer</title>
+    <style>
+      /* ---------------------------------------------------------------
+       * Splash screen
+       *
+       * 写在 index.html 里（不是 React 组件）的原因：
+       *   Electron 启动后 → BrowserWindow 创建 → Vite renderer bundle (~2.6MB)
+       *   下载 + 解析 + 执行 + ThreeContext 初始化 + AudioEngine 初始化
+       *   一共 1-3 秒，期间用户看到的就是 #root 空 div = 黑屏。
+       *
+       *   Splash 在 React 加载前就由浏览器渲染（HTML 解析完毕就显示），
+       *   配合 CSS @keyframes 动画告诉用户"程序在动，不是卡死"。
+       *
+       *   主题契合：用一组类似音柱跳动的 bar 作为视觉主体，呼应整个软件
+       *   的"音频可视化"定位。颜色复用 index.css 的 dark theme 色板。
+       * ------------------------------------------------------------- */
+      :root {
+        color-scheme: dark;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #0b0d12;
+        overflow: hidden;
+      }
+      #splash {
+        position: fixed;
+        inset: 0;
+        background: #0b0d12;
+        color: #e6e9ef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 28px;
+        z-index: 9999;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        transition: opacity 420ms ease;
+        opacity: 1;
+      }
+      #splash.fading {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #splash .brand {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 4px;
+        color: #e6e9ef;
+        opacity: 0;
+        animation: splashFadeIn 600ms ease 80ms forwards;
+      }
+      #splash .bars {
+        display: flex;
+        gap: 5px;
+        align-items: flex-end;
+        height: 44px;
+      }
+      #splash .bar {
+        width: 5px;
+        height: 6px;
+        background: linear-gradient(180deg, #6aa9ff 0%, #5e9eff 100%);
+        border-radius: 2px;
+        transform-origin: bottom center;
+        animation: splashBar 1s ease-in-out infinite alternate;
+      }
+      /* 7 根音柱用阶梯延迟做出"波形从左到右扫"的错相效果 */
+      #splash .bar:nth-child(1) { animation-delay: 0ms;   }
+      #splash .bar:nth-child(2) { animation-delay: 80ms;  }
+      #splash .bar:nth-child(3) { animation-delay: 160ms; }
+      #splash .bar:nth-child(4) { animation-delay: 240ms; }
+      #splash .bar:nth-child(5) { animation-delay: 320ms; }
+      #splash .bar:nth-child(6) { animation-delay: 400ms; }
+      #splash .bar:nth-child(7) { animation-delay: 480ms; }
+      #splash .hint {
+        font-size: 11px;
+        color: #8a93a4;
+        letter-spacing: 1.5px;
+        opacity: 0;
+        animation: splashFadeIn 600ms ease 200ms forwards;
+      }
+      @keyframes splashBar {
+        0%   { height: 6px;  opacity: 0.45; }
+        100% { height: 44px; opacity: 1.0;  }
+      }
+      @keyframes splashFadeIn {
+        from { opacity: 0; transform: translateY(4px); }
+        to   { opacity: 1; transform: translateY(0);   }
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-BjmwvWFt.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Dt4SX-Zm.css">
+  </head>
+  <body>
+    <div id="splash">
+      <div class="brand">AUDIO VISUALIZER</div>
+      <div class="bars">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+      <div class="hint">LOADING</div>
+    </div>
+    <div id="root"></div>
+  </body>
+</html>
