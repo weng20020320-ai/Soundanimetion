@@ -178,11 +178,18 @@ export function createRadialSpectrumPreset(): VisualPreset {
     mesh.renderOrder = 1; // 柱体在圆环之后画
     state.bars = mesh;
 
+    // 内圆环：用 vertexColors 让它跟柱体共用渐变（不再是死白圈）。
+    // RingGeometry 默认 thetaSegments=128，会产生 (128+1)*2 个顶点。
     const ringGeo = new THREE.RingGeometry(1, 1.06, 128);
+    const ringVertCount = ringGeo.attributes.position.count;
+    ringGeo.setAttribute(
+      'color',
+      new THREE.BufferAttribute(new Float32Array(ringVertCount * 3), 3)
+    );
     state.ringMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
+      vertexColors: true,
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.45,         // 恒定不再 pulse，避免节拍处闪一下
       depthWrite: false,
     });
     state.ring = new THREE.Mesh(ringGeo, state.ringMat);
@@ -305,11 +312,30 @@ export function createRadialSpectrumPreset(): VisualPreset {
       state.bars.instanceMatrix.needsUpdate = true;
       state.bars.instanceColor!.needsUpdate = true;
 
-      // 内圆环
+      // 内圆环：跟柱体共用渐变 + 极轻微的 beat 缩放（取代之前的 opacity 闪）
       if (state.ring && state.ringMat) {
         state.ring.visible = innerRing;
-        state.ring.scale.setScalar(innerRadius);
-        state.ringMat.opacity = 0.35 + state.punchEnvelope * 0.4;
+        const ringPulse = 1 + state.punchEnvelope * 0.018;
+        state.ring.scale.setScalar(innerRadius * ringPulse);
+
+        if (innerRing) {
+          const ringGeom = state.ring.geometry as THREE.RingGeometry;
+          const colorAttr = ringGeom.getAttribute('color') as THREE.BufferAttribute;
+          const posAttr = ringGeom.getAttribute('position') as THREE.BufferAttribute;
+          const vCount = posAttr.count;
+          for (let v = 0; v < vCount; v++) {
+            const x = posAttr.getX(v);
+            const y = posAttr.getY(v);
+            // 把 local angle 映射到 [0,1)，从 12 点钟方向开始绕一圈，
+            // 与柱体 'angle' colorMode 的 t = i/(N-1) 对齐。
+            const ang = Math.atan2(y, x);
+            let t = (ang + Math.PI / 2) / (Math.PI * 2);
+            t = ((t % 1) + 1) % 1;
+            sampleGradient(gradient, t, tmpColor);
+            colorAttr.setXYZ(v, tmpColor.r, tmpColor.g, tmpColor.b);
+          }
+          colorAttr.needsUpdate = true;
+        }
       }
     },
 
