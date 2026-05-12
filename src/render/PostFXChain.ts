@@ -54,9 +54,9 @@ export const POSTFX_DEFAULTS: PostFXParams = {
   chromaticBeatBoost: 1.4,
   glitchEnabled: false,
   glitchIntensity: 0.5,
-  grainEnabled: true,
+  grainEnabled: false,
   grainIntensity: 0.06,
-  vignetteEnabled: true,
+  vignetteEnabled: false,
   vignetteAmount: 0.35,
   vignetteSoftness: 0.5,
 };
@@ -168,7 +168,7 @@ export function buildPostFXSchema(labels: PostFXLabels = ZH_LABELS): ParamSchema
       step: 0.01,
     },
 
-    grainEnabled: { type: 'bool', label: labels.grain, default: true },
+    grainEnabled: { type: 'bool', label: labels.grain, default: false },
     grainIntensity: {
       type: 'float',
       label: labels.grainIntensity,
@@ -178,7 +178,7 @@ export function buildPostFXSchema(labels: PostFXLabels = ZH_LABELS): ParamSchema
       step: 0.005,
     },
 
-    vignetteEnabled: { type: 'bool', label: labels.vignette, default: true },
+    vignetteEnabled: { type: 'bool', label: labels.vignette, default: false },
     vignetteAmount: {
       type: 'float',
       label: labels.vignetteAmount,
