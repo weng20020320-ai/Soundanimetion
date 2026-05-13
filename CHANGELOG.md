@@ -9,6 +9,52 @@
 
 ---
 
+## 2026-05-13 🌐 Web demo 上线 + demoUrl 改用 Vercel 默认域名
+
+### 状态
+**`v0.2.1` tag 已推**（commit `8d72b68`），release.yml 双平台构建跑完，GitHub Releases 出现产物：
+
+```
+wavelet-win-x64-setup.exe     ← apparatus.json.downloads.windows
+wavelet-win-x64-portable.exe
+wavelet-mac-arm64.dmg          ← apparatus.json.downloads.macos
+wavelet-mac-x64.dmg
+latest.yml / latest-mac.yml
+```
+
+主页下载按钮当场生效 ✅。
+
+### Web demo 部署决策
+用户**没有自定义子域名预算**，决定**不绑** `wavelet.clearmika.com`，直接用 Vercel 默认产生的 URL：
+
+**`https://soundanimetion.vercel.app`**
+
+理由：
+- Vercel Hobby 免费提供 `*.vercel.app`，性能、HTTPS、CDN 完全等同自定义域名
+- 个人项目无品牌迁移压力，将来想换域名也是 5 分钟工作
+- 省去 DNS 配置环节
+
+WebFetch 实地确认页面完整可访问：标题 Wavelet · audio visualizer，UI 全部加载（文件 picker、预设、参数面板、Post-FX 控制、Try online 提示、Get desktop 跳链）。
+
+### 改动文件
+- `apparatus.json` —— `demoUrl: "https://wavelet.clearmika.com"` → `"https://soundanimetion.vercel.app"`
+- `docs/handoff/wavelet-card.md`
+  - §2 数据源表里 Web demo 一行改成新 URL + "已上线"
+  - §3 示例 JSON 同步
+  - §5 整个章节重写："子域名部署（待用户操作）" → "Web demo 部署（已完成）"
+  - §7 状态表把"待 Import / 待 DNS"改成"✓ 已上线"
+- 本 CHANGELOG 加这一条
+
+**没改 README.md** —— 它只提到 `clearmika.com` 主页本身（作为上下文），不引用 wavelet 子域，无需动。
+
+### 关于历史 CHANGELOG 条目里的 `wavelet.clearmika.com`
+2026-05-12 的"Phase 1 / Phase 2"条目里有 `wavelet.clearmika.com` 字样作为当时的计划。**不修改这些条目**——CHANGELOG 是历史记录，不重写。本条加日期标记决策变更，时间线清晰可追。
+
+### 主页 agent 这边的工作
+拉一次 `apparatus.json`，新 demoUrl 自动生效。"Try online" 按钮指向新 URL。**主页代码 0 行改动**（v3 真理之源契约的红利）。
+
+---
+
 ## 2026-05-12 🧬 cover v3：视觉参数升进 apparatus.json，恢复 JSON 真理之源
 
 ### 背景
